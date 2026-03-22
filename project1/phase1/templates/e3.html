@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>國立陽明交通大學 單一入口</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Base Reset */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif; }
+        body { height: 100vh; display: flex; overflow: hidden; background-color: #333; }
+
+        /* --- Left Side --- */
+        .left-panel { flex: 6; background-image: url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80'); background-size: cover; background-position: center; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .left-panel::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.2); }
+        .campus-logo-overlay { position: relative; z-index: 1; text-align: center; }
+        .uni-logo-white { width: 350px; display: block; margin-bottom: 25px; }
+        .platform-title { position: relative; z-index: 1; font-size: 18px; color: white; text-shadow: 1px 1px 4px rgba(0,0,0,0.6); letter-spacing: 1px; }
+
+        /* --- Right Side Container --- */
+        .right-panel { flex: 4; background-color: #ffffff; display: flex; align-items: center; justify-content: center; min-width: 450px; }
+        .login-container { width: 100%; max-width: 440px; padding: 40px; }
+
+        /* Shared Header */
+        .header-brand { display: flex; align-items: center; margin-bottom: 50px; }
+        .nycu-logo { height: 22px; margin-right: 12px; }
+        .brand-text { color: #0b4b9b; font-size: 17px; font-weight: 500; }
+
+        /* Language Classes */
+        .lang-en { display: none; }
+        .lang-en-active .lang-en { display: inline; }
+        .lang-en-active .lang-zh { display: none; }
+
+        /* Shared Top Navigation (Back & Lang) */
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .back-link { color: #444; text-decoration: none; font-size: 16px; cursor: pointer; }
+        .back-link i { margin-right: 5px; }
+        .back-link:hover { color: #111; }
+        .lang-toggle { display: flex; background-color: #f4f4f4; border-radius: 6px; overflow: hidden; }
+        .lang-btn { padding: 8px 16px; font-size: 14px; cursor: pointer; color: #555; transition: all 0.2s; }
+        .lang-btn.active { background-color: #0033a0; color: white; }
+        
+        /* View specific padding to fix vertical alignment */
+        #forgot-password-view { padding-bottom: 80px; }
+        #activate-account-view { padding-bottom: 40px; }
+
+        /* Shared Title Style */
+        .view-title { font-size: 22px; font-weight: 400; color: #555; margin-bottom: 20px; letter-spacing: 0.5px; }
+        .view-title span.blue-text { color: #004098; }
+
+        /* ========================================= */
+        /* VIEW 1: LOGIN STYLES                      */
+        /* ========================================= */
+        .form-title { font-size: 26px; font-weight: 400; color: #222; margin-bottom: 12px; letter-spacing: 1px; }
+        .form-subtitle { font-size: 16px; color: #222; margin-bottom: 35px; }
+        .form-subtitle a { color: #1a73e8; text-decoration: none; cursor: pointer; }
+        .form-subtitle a:hover { text-decoration: underline; }
+        .form-group { margin-bottom: 25px; }
+        .form-group label { display: block; font-size: 15px; color: #555; margin-bottom: 10px; }
+        .input-wrapper { position: relative; background-color: #f4f4f4; border-bottom: 2px solid #666; height: 54px; display: flex; align-items: center; transition: border-color 0.2s ease; }
+        .input-wrapper:focus-within { border-bottom-color: #1a73e8; }
+        .input-wrapper i.left-icon { padding-left: 18px; color: #555; font-size: 18px; }
+        .input-wrapper i.right-icon { padding-right: 18px; color: #555; font-size: 18px; cursor: pointer; }
+        .input-wrapper input { flex: 1; height: 100%; padding: 0 15px; border: none; background: transparent; font-size: 16px; outline: none; color: #333; }
+        .input-wrapper input::placeholder { color: #777; }
+        .input-wrapper input[type="password"]::-ms-reveal, .input-wrapper input[type="password"]::-ms-clear { display: none; }
+        .forgot-password { display: inline-block; margin-top: -10px; margin-bottom: 35px; font-size: 15px; color: #1a73e8; text-decoration: none; cursor: pointer; }
+        .forgot-password:hover { text-decoration: underline; }
+        .btn-login { width: 100%; background-color: #1a73e8; color: white; border: none; height: 52px; padding: 0 20px; font-size: 16px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background-color 0.2s; }
+        .btn-login:hover { background-color: #1557b0; }
+        .activate-account-trigger { display: inline-block; margin-top: 15px; margin-left: 20px; font-size: 15px; color: #1a73e8; text-decoration: none; cursor: pointer; }
+        .activate-account-trigger:hover { text-decoration: underline; }
+
+        /* ========================================= */
+        /* VIEW 2: FORGOT PASSWORD STYLES            */
+        /* ========================================= */
+        .stepper-container { background-color: #fafafa; padding: 25px 20px 15px; border-radius: 4px; margin-bottom: 30px; }
+        .stepper { display: flex; justify-content: space-between; position: relative; margin-bottom: 15px; }
+        .stepper-line { position: absolute; top: 14px; left: 15%; right: 15%; height: 2px; background-color: #e0e0e0; z-index: 1; }
+        .step { display: flex; flex-direction: column; align-items: center; z-index: 2; width: 33%; text-align: center; }
+        .step-circle { width: 30px; height: 30px; border-radius: 50%; background-color: #e0e0e0; color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; margin-bottom: 10px; }
+        .step.active .step-circle { background-color: #004098; }
+        .step-text { font-size: 12px; color: #b0b0b0; white-space: nowrap; }
+        .step.active .step-text { color: #004098; }
+        .stepper-bottom-bar { height: 5px; background-color: #e0e0e0; border-radius: 3px; margin-top: 10px; }
+        .fp-input-wrapper { position: relative; margin-bottom: 25px; }
+        .fp-input-wrapper input { width: 100%; padding: 14px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; outline: none; color: #333; }
+        .fp-input-wrapper input:focus { border-color: #1a73e8; }
+        .fp-input-wrapper input::placeholder { color: #bbb; }
+        .fp-input-wrapper i.info-icon { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #004098; font-size: 18px; cursor: pointer; }
+        .btn-confirm { width: 100%; background-color: #d8d8d8; color: white; border: none; height: 52px; border-radius: 6px; font-size: 16px; cursor: not-allowed; text-align: center; transition: 0.2s; }
+        .btn-confirm.active { background-color: #2b2b2b; cursor: pointer; }
+        .btn-confirm.active:hover { background-color: #111111; }
+
+        /* ========================================= */
+        /* VIEW 3: ACTIVATE ACCOUNT STYLES           */
+        /* ========================================= */
+        .info-box {
+            background-color: #f4f8fb;
+            border-left: 3px solid #6ca8ff; 
+            padding: 16px 20px;
+            margin-bottom: 25px;
+            font-size: 14px;
+            color: #555;
+        }
+        .info-box a { color: #1a73e8; text-decoration: none; cursor: pointer; }
+        .info-box a:hover { text-decoration: underline; }
+
+        .identity-card {
+            border: 1px solid #e6e6e6;
+            border-radius: 8px;
+            padding: 25px 20px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background-color: #fff;
+        }
+        .identity-card:hover { border-color: #ccc; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+        .card-icon { font-size: 22px; color: #555; margin-bottom: 20px; }
+        .card-title { font-size: 15px; font-weight: 600; color: #333; margin-bottom: 12px; }
+        .card-subtitle { font-size: 12px; color: #888; line-height: 1.5; }
+
+        /* --- MODAL STYLES --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.45); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background-color: #fff; width: 90%; border-radius: 8px; padding: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); position: relative; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .modal-title { font-size: 18px; font-weight: 500; color: #333; }
+        .close-modal { font-size: 20px; color: #aaa; cursor: pointer; transition: color 0.2s; }
+        .close-modal:hover { color: #333; }
+
+        /* Specific styles for Instruction Modal */
+        .instruction-modal-content { max-width: 600px; }
+        .modal-body h3 { font-size: 16px; font-weight: 500; color: #333; margin-bottom: 12px; }
+        .modal-body ul { list-style: disc; margin-left: 20px; margin-bottom: 20px; font-size: 15px; color: #444; line-height: 1.6; }
+        .modal-body li { margin-bottom: 6px; }
+        .modal-body hr { border: 0; border-top: 1px solid #eaeaea; margin: 24px 0; }
+        .text-nycu-blue { color: #0056b3; } 
+        .text-red-bold { color: #dc3545; font-weight: 600; } 
+
+        /* Specific styles for Alert/Prompt Modal */
+        .alert-modal-content { max-width: 420px; padding: 20px 24px; border-radius: 6px; }
+        .alert-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .alert-modal-header .modal-title { font-size: 16px; font-weight: 500; }
+        .alert-modal-header .close-modal { font-size: 16px; color: #bbb; }
+        .alert-body { display: flex; align-items: flex-start; margin-bottom: 24px; }
+        .alert-icon { color: #888; font-size: 22px; margin-right: 12px; margin-top: 0px; }
+        .alert-text { font-size: 14px; color: #555; line-height: 1.5; }
+        .alert-footer { display: flex; justify-content: flex-end; }
+        .btn-alert-confirm { background-color: #63a4ff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; transition: 0.2s; }
+        .btn-alert-confirm:hover { background-color: #4b8ce6; }
+
+        @media (max-width: 900px) { .left-panel { display: none; } .right-panel { flex: 1; } }
+    </style>
+</head>
+<body>
+
+    <div class="left-panel">
+        <div class="campus-logo-overlay">
+            <img src="/static/LogoAndSchoolName.png" alt="國立陽明交通大學 Logo" class="uni-logo-white" onerror="this.src='LogoAndSchoolName.png'">
+        </div>
+        <div class="platform-title">E3數位教學平台</div>
+    </div>
+
+    <div class="right-panel">
+        <div class="login-container">
+            
+            <div class="header-brand">
+                <img src="/static/logo.png" alt="NYCU" class="nycu-logo" onerror="this.src='logo.png'">
+                <span class="brand-text">國立陽明交通大學單一入口</span>
+            </div>
+
+            <div id="login-view">
+                <h1 class="form-title">登入單一入口網站</h1>
+                <p class="form-subtitle">第一次登入嗎？ <a id="loginInstructionModalLink">點我查看帳號填寫說明</a></p>
+
+                <form action="/login" method="POST">
+                    <div class="form-group">
+                        <label for="username">帳號</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-user left-icon"></i>
+                            <input type="text" id="username" name="username" placeholder="請輸入您的帳號" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">密碼</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-lock left-icon"></i>
+                            <input type="password" id="password" name="password" placeholder="請輸入您的密碼" required>
+                            <i class="fa-solid fa-eye-slash right-icon" id="togglePassword"></i>
+                        </div>
+                    </div>
+
+                    <a class="forgot-password trigger-fp-view">忘記密碼？</a>
+
+                    <button type="submit" class="btn-login">
+                        <span>帳號登入</span>
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+
+                    <a class="activate-account-trigger trigger-activate-view">啟用帳號</a>
+                </form>
+            </div>
+
+            <div id="forgot-password-view" style="display: none;">
+                
+                <div class="top-bar">
+                    <a class="back-link trigger-login-view">
+                        <i class="fa-solid fa-arrow-left"></i> 
+                        <span class="lang-zh">回登入頁</span>
+                        <span class="lang-en">Back to Login Page</span>
+                    </a>
+                    <div class="lang-toggle">
+                        <div class="lang-btn active" data-lang="zh">中文</div>
+                        <div class="lang-btn" data-lang="en">English</div>
+                    </div>
+                </div>
+
+                <h2 class="view-title">
+                    <span class="lang-zh"><span class="blue-text">忘記密碼</span>/確認身分</span>
+                    <span class="lang-en"><span class="blue-text">Forgot Password</span>/Confirm Identity</span>
+                </h2>
+
+                <div class="stepper-container">
+                    <div class="stepper">
+                        <div class="stepper-line"></div>
+                        <div class="step active">
+                            <div class="step-circle">1</div>
+                            <div class="step-text"><span class="lang-zh">確認身份</span><span class="lang-en">Confirm Identity</span></div>
+                        </div>
+                        <div class="step">
+                            <div class="step-circle">2</div>
+                            <div class="step-text"><span class="lang-zh">OTP 驗證</span><span class="lang-en">OTP Verification</span></div>
+                        </div>
+                        <div class="step">
+                            <div class="step-circle">3</div>
+                            <div class="step-text"><span class="lang-zh">重設密碼</span><span class="lang-en">Reset Password</span></div>
+                        </div>
+                    </div>
+                    <div class="stepper-bottom-bar"></div>
+                </div>
+
+                <form action="#" method="POST">
+                    <div class="form-group">
+                        <label><span class="lang-zh">帳號</span><span class="lang-en">Account</span></label>
+                        <div class="fp-input-wrapper">
+                            <input type="text" id="fp-account-input" placeholder="帳號">
+                            <i class="fa-solid fa-circle-question info-icon" id="fpInstructionModalLink"></i>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-confirm" id="btnConfirmIdentity">
+                        <span class="lang-zh">確認身分</span><span class="lang-en">Confirm Identity</span>
+                    </button>
+                </form>
+            </div>
+
+            <div id="activate-account-view" style="display: none;">
+                
+                <div class="top-bar">
+                    <a class="back-link trigger-login-view">
+                        <i class="fa-solid fa-arrow-left"></i> 
+                        <span class="lang-zh">回登入頁面</span>
+                        <span class="lang-en">Back to Login Page</span>
+                    </a>
+                    <div class="lang-toggle">
+                        <div class="lang-btn active" data-lang="zh">中文</div>
+                        <div class="lang-btn" data-lang="en">English</div>
+                    </div>
+                </div>
+
+                <h2 class="view-title">
+                    <span class="lang-zh"><span class="blue-text">啟用帳號</span>/請選擇您的身分</span>
+                    <span class="lang-en"><span class="blue-text">Activate Account</span>/Please Select Your Identity</span>
+                </h2>
+
+                <div class="info-box">
+                    <span class="lang-zh">首次使用 NYCU Portal？請先閱讀 <a href="https://it.nycu.edu.tw/it/ch/app/artwebsite/view?module=artwebsite&id=27&serno=97742641-5a31-4c95-a4f5-f9a737cf7984" target="_blank">啟用說明</a></span>
+                    <span class="lang-en">First time using NYCU Portal? Please read the <a href="https://it.nycu.edu.tw/it/ch/app/artwebsite/view?module=artwebsite&id=27&serno=97742641-5a31-4c95-a4f5-f9a737cf7984" target="_blank">Activation Instructions</a></span>
+                </div>
+
+                <div class="identity-card">
+                    <i class="fa-solid fa-user-graduate card-icon"></i>
+                    <div class="card-title">
+                        <span class="lang-zh">教職員/學生/兼任助理</span>
+                        <span class="lang-en">Faculty/Students/Part-time Assistants</span>
+                    </div>
+                    <div class="card-subtitle">
+                        <span class="lang-zh">在學學士/碩/博士/產學專班/教職員/工讀生</span>
+                        <span class="lang-en">Undergraduate/Graduate/PhD/Industry-Academia Program/Faculty/Work study Students</span>
+                    </div>
+                </div>
+
+                <div class="identity-card">
+                    <i class="fa-regular fa-envelope card-icon"></i>
+                    <div class="card-title">
+                        <span class="lang-zh">校友</span>
+                        <span class="lang-en">Alumni</span>
+                    </div>
+                    <div class="card-subtitle">
+                        <span class="lang-zh">已通過審核之畢業校友</span>
+                        <span class="lang-en">Verified alumni</span>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div> 
+
+    <div class="modal-overlay" id="instructionModalOverlay">
+        <div class="modal-content instruction-modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitleZh">帳號填寫說明</div>
+                <div class="modal-title" id="modalTitleEn" style="display: none;">Account Input Instructions</div>
+                <i class="fa-solid fa-times close-modal"></i>
+            </div>
+            <div class="modal-body">
+                <div id="modalContentZh">
+                    <h3 class="modal-subtitle">中文說明</h3>
+                    <ul>
+                        <li><span class="text-nycu-blue">學生</span>：請輸入<span class="text-red-bold">學號</span></li>
+                        <li><span class="text-nycu-blue">教職員</span>：請輸入<span class="text-red-bold">人事代號</span></li>
+                        <li><span class="text-nycu-blue">校友及其他</span>：請輸入<span class="text-red-bold">Email</span></li>
+                    </ul>
+                </div>
+                <hr id="modalDivider">
+                <div id="modalContentEn">
+                    <h3 class="modal-subtitle">English</h3>
+                    <ul>
+                        <li><span class="text-nycu-blue">Students</span>: use your <span class="text-red-bold">Student ID</span></li>
+                        <li><span class="text-nycu-blue">Faculty/Staff</span>: use your <span class="text-red-bold">Faculty/Staff ID</span></li>
+                        <li><span class="text-nycu-blue">Alumni and Others</span>: use your <span class="text-red-bold">Email</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="alertModalOverlay">
+        <div class="modal-content alert-modal-content">
+            <div class="alert-modal-header">
+                <div class="modal-title"><span class="lang-zh">提示</span><span class="lang-en">Information</span></div>
+                <i class="fa-solid fa-times close-modal"></i>
+            </div>
+            <div class="alert-body">
+                <i class="fa-solid fa-circle-info alert-icon"></i>
+                <div class="alert-text">
+                    <span class="lang-zh">如果該帳號存在且已啟用，我們將發送 OTP 到您的信箱。</span>
+                    <span class="lang-en">If the account exists and is enabled, we will send an OTP to your mailbox.</span>
+                </div>
+            </div>
+            <div class="alert-footer">
+                <button class="btn-alert-confirm close-modal"><span class="lang-zh">確定</span><span class="lang-en">OK</span></button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. View Navigation Logic ---
+        const loginView = document.getElementById('login-view');
+        const fpView = document.getElementById('forgot-password-view');
+        const activateView = document.getElementById('activate-account-view');
+        
+        // Go to Forgot Password
+        document.querySelector('.trigger-fp-view').addEventListener('click', () => {
+            loginView.style.display = 'none';
+            fpView.style.display = 'block';
+            activateView.style.display = 'none';
+        });
+
+        // Go to Activate Account
+        document.querySelector('.trigger-activate-view').addEventListener('click', () => {
+            loginView.style.display = 'none';
+            fpView.style.display = 'none';
+            activateView.style.display = 'block';
+        });
+
+        // Back to Login (used by both other views)
+        document.querySelectorAll('.trigger-login-view').forEach(btn => {
+            btn.addEventListener('click', () => {
+                fpView.style.display = 'none';
+                activateView.style.display = 'none';
+                loginView.style.display = 'block';
+            });
+        });
+
+        // --- 2. Language Toggle Logic (Syncs across views and modals) ---
+        const langBtns = document.querySelectorAll('.lang-btn');
+        const fpAccountInput = document.getElementById('fp-account-input');
+        const allModals = document.querySelectorAll('.modal-overlay');
+
+        langBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Update active button state globally
+                const selectedLang = this.getAttribute('data-lang');
+                langBtns.forEach(b => {
+                    if(b.getAttribute('data-lang') === selectedLang) b.classList.add('active');
+                    else b.classList.remove('active');
+                });
+
+                // Apply language class to views and modals
+                if (selectedLang === 'en') {
+                    fpView.classList.add('lang-en-active');
+                    activateView.classList.add('lang-en-active');
+                    allModals.forEach(m => m.classList.add('lang-en-active'));
+                    fpAccountInput.setAttribute('placeholder', 'Account');
+                } else {
+                    fpView.classList.remove('lang-en-active');
+                    activateView.classList.remove('lang-en-active');
+                    allModals.forEach(m => m.classList.remove('lang-en-active'));
+                    fpAccountInput.setAttribute('placeholder', '帳號');
+                }
+            });
+        });
+
+        // --- 3. Password Reveal Toggle ---
+        const togglePassword = document.querySelector('#togglePassword');
+        const password = document.querySelector('#password');
+        togglePassword.addEventListener('click', function () {
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            this.classList.toggle('fa-eye-slash');
+            this.classList.toggle('fa-eye');
+        });
+
+        // --- 4. Shared Modal Logic ---
+        const hideModal = (modalElement) => { modalElement.classList.remove('active'); };
+
+        // Bind 'close' to all elements with class .close-modal
+        document.querySelectorAll('.close-modal').forEach(btn => {
+            btn.addEventListener('click', function() {
+                hideModal(this.closest('.modal-overlay'));
+            });
+        });
+
+        // Close on outside click
+        allModals.forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) hideModal(overlay);
+            });
+        });
+
+        // --- 5. Instruction Modal specific logic ---
+        const instructionModalOverlay = document.getElementById('instructionModalOverlay');
+        const modalTitleZh = document.getElementById('modalTitleZh');
+        const modalTitleEn = document.getElementById('modalTitleEn');
+        const modalContentZh = document.getElementById('modalContentZh');
+        const modalContentEn = document.getElementById('modalContentEn');
+        const modalDivider = document.getElementById('modalDivider');
+        const modalSubtitles = document.querySelectorAll('.modal-subtitle');
+
+        // From Login (Shows Both)
+        document.getElementById('loginInstructionModalLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            modalTitleZh.style.display = 'block'; modalTitleEn.style.display = 'none';
+            modalSubtitles.forEach(el => el.style.display = 'block');
+            modalDivider.style.display = 'block';
+            modalContentZh.style.display = 'block'; modalContentEn.style.display = 'block';
+            instructionModalOverlay.classList.add('active');
+        });
+
+        // From FP View (Shows Active Lang)
+        document.getElementById('fpInstructionModalLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            const activeLang = document.querySelector('.lang-btn.active').getAttribute('data-lang');
+            modalSubtitles.forEach(el => el.style.display = 'none');
+            modalDivider.style.display = 'none';
+            if (activeLang === 'en') {
+                modalTitleZh.style.display = 'none'; modalTitleEn.style.display = 'block';
+                modalContentZh.style.display = 'none'; modalContentEn.style.display = 'block';
+            } else {
+                modalTitleZh.style.display = 'block'; modalTitleEn.style.display = 'none';
+                modalContentZh.style.display = 'block'; modalContentEn.style.display = 'none';
+            }
+            instructionModalOverlay.classList.add('active');
+        });
+
+        // --- 6. FP Alert Modal logic ---
+        const btnConfirmIdentity = document.getElementById('btnConfirmIdentity');
+        const alertModalOverlay = document.getElementById('alertModalOverlay');
+        
+        fpAccountInput.addEventListener('input', function() {
+            if (this.value.trim().length > 0) btnConfirmIdentity.classList.add('active');
+            else btnConfirmIdentity.classList.remove('active');
+        });
+
+        btnConfirmIdentity.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (btnConfirmIdentity.classList.contains('active')) alertModalOverlay.classList.add('active');
+        });
+
+    </script>
+</body>
+</html>
