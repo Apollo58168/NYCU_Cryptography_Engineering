@@ -10,12 +10,15 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif; }
         body { height: 100vh; display: flex; overflow: hidden; background-color: #333; }
 
-        /* --- Left Side --- */
-        .left-panel { flex: 6; background-image: url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80'); background-size: cover; background-position: center; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .left-panel::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.2); }
-        .campus-logo-overlay { position: relative; z-index: 1; text-align: center; }
+        /* --- Left Side: Dynamic Slideshow --- */
+        .left-panel { flex: 6; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
+        .slideshow-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
+        .bg-slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-size: cover; background-position: center; opacity: 0; transition: opacity 1.5s ease-in-out; }
+        .bg-slide.active { opacity: 1; }
+        .left-panel::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.2); z-index: 1; }
+        .campus-logo-overlay { position: relative; z-index: 2; text-align: center; }
         .uni-logo-white { width: 350px; display: block; margin-bottom: 25px; }
-        .platform-title { position: relative; z-index: 1; font-size: 18px; color: white; text-shadow: 1px 1px 4px rgba(0,0,0,0.6); letter-spacing: 1px; }
+        .platform-title { position: relative; z-index: 2; font-size: 18px; color: white; text-shadow: 1px 1px 4px rgba(0,0,0,0.6); letter-spacing: 1px; }
 
         /* --- Right Side Container --- */
         .right-panel { flex: 4; background-color: #ffffff; display: flex; align-items: center; justify-content: center; min-width: 450px; }
@@ -40,7 +43,6 @@
         .lang-btn { padding: 8px 16px; font-size: 14px; cursor: pointer; color: #555; transition: all 0.2s; }
         .lang-btn.active { background-color: #0033a0; color: white; }
         
-        /* View specific padding to fix vertical alignment */
         #forgot-password-view { padding-bottom: 80px; }
         #activate-account-view { padding-bottom: 40px; }
 
@@ -95,26 +97,10 @@
         /* ========================================= */
         /* VIEW 3: ACTIVATE ACCOUNT STYLES           */
         /* ========================================= */
-        .info-box {
-            background-color: #f4f8fb;
-            border-left: 3px solid #6ca8ff; 
-            padding: 16px 20px;
-            margin-bottom: 25px;
-            font-size: 14px;
-            color: #555;
-        }
+        .info-box { background-color: #f4f8fb; border-left: 3px solid #6ca8ff; padding: 16px 20px; margin-bottom: 25px; font-size: 14px; color: #555; }
         .info-box a { color: #1a73e8; text-decoration: none; cursor: pointer; }
         .info-box a:hover { text-decoration: underline; }
-
-        .identity-card {
-            border: 1px solid #e6e6e6;
-            border-radius: 8px;
-            padding: 25px 20px;
-            margin-bottom: 15px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            background-color: #fff;
-        }
+        .identity-card { border: 1px solid #e6e6e6; border-radius: 8px; padding: 25px 20px; margin-bottom: 15px; cursor: pointer; transition: all 0.2s ease; background-color: #fff; }
         .identity-card:hover { border-color: #ccc; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
         .card-icon { font-size: 22px; color: #555; margin-bottom: 20px; }
         .card-title { font-size: 15px; font-weight: 600; color: #333; margin-bottom: 12px; }
@@ -138,13 +124,14 @@
         .text-nycu-blue { color: #0056b3; } 
         .text-red-bold { color: #dc3545; font-weight: 600; } 
 
-        /* Specific styles for Alert/Prompt Modal */
+        /* Specific styles for Alert/Prompt/Error Modal */
         .alert-modal-content { max-width: 420px; padding: 20px 24px; border-radius: 6px; }
         .alert-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .alert-modal-header .modal-title { font-size: 16px; font-weight: 500; }
-        .alert-modal-header .close-modal { font-size: 16px; color: #bbb; }
+        .alert-modal-header .close-modal { font-size: 16px; color: #bbb; cursor: pointer;}
         .alert-body { display: flex; align-items: flex-start; margin-bottom: 24px; }
         .alert-icon { color: #888; font-size: 22px; margin-right: 12px; margin-top: 0px; }
+        .error-icon { color: #ff5050; font-size: 22px; margin-right: 12px; margin-top: 0px; } /* Red error icon */
         .alert-text { font-size: 14px; color: #555; line-height: 1.5; }
         .alert-footer { display: flex; justify-content: flex-end; }
         .btn-alert-confirm { background-color: #63a4ff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; transition: 0.2s; }
@@ -156,6 +143,10 @@
 <body>
 
     <div class="left-panel">
+        
+        <div class="slideshow-container" id="slideshow-container">
+            </div>
+
         <div class="campus-logo-overlay">
             <img src="/static/LogoAndSchoolName.png" alt="國立陽明交通大學 Logo" class="uni-logo-white" onerror="this.src='LogoAndSchoolName.png'">
         </div>
@@ -171,6 +162,7 @@
             </div>
 
             <div id="login-view">
+
                 <h1 class="form-title">登入單一入口網站</h1>
                 <p class="form-subtitle">第一次登入嗎？ <a id="loginInstructionModalLink">點我查看帳號填寫說明</a></p>
 
@@ -204,12 +196,10 @@
             </div>
 
             <div id="forgot-password-view" style="display: none;">
-                
                 <div class="top-bar">
                     <a class="back-link trigger-login-view">
                         <i class="fa-solid fa-arrow-left"></i> 
-                        <span class="lang-zh">回登入頁</span>
-                        <span class="lang-en">Back to Login Page</span>
+                        <span class="lang-zh">回登入頁</span><span class="lang-en">Back to Login Page</span>
                     </a>
                     <div class="lang-toggle">
                         <div class="lang-btn active" data-lang="zh">中文</div>
@@ -225,18 +215,9 @@
                 <div class="stepper-container">
                     <div class="stepper">
                         <div class="stepper-line"></div>
-                        <div class="step active">
-                            <div class="step-circle">1</div>
-                            <div class="step-text"><span class="lang-zh">確認身份</span><span class="lang-en">Confirm Identity</span></div>
-                        </div>
-                        <div class="step">
-                            <div class="step-circle">2</div>
-                            <div class="step-text"><span class="lang-zh">OTP 驗證</span><span class="lang-en">OTP Verification</span></div>
-                        </div>
-                        <div class="step">
-                            <div class="step-circle">3</div>
-                            <div class="step-text"><span class="lang-zh">重設密碼</span><span class="lang-en">Reset Password</span></div>
-                        </div>
+                        <div class="step active"><div class="step-circle">1</div><div class="step-text"><span class="lang-zh">確認身份</span><span class="lang-en">Confirm Identity</span></div></div>
+                        <div class="step"><div class="step-circle">2</div><div class="step-text"><span class="lang-zh">OTP 驗證</span><span class="lang-en">OTP Verification</span></div></div>
+                        <div class="step"><div class="step-circle">3</div><div class="step-text"><span class="lang-zh">重設密碼</span><span class="lang-en">Reset Password</span></div></div>
                     </div>
                     <div class="stepper-bottom-bar"></div>
                 </div>
@@ -256,12 +237,10 @@
             </div>
 
             <div id="activate-account-view" style="display: none;">
-                
                 <div class="top-bar">
                     <a class="back-link trigger-login-view">
                         <i class="fa-solid fa-arrow-left"></i> 
-                        <span class="lang-zh">回登入頁面</span>
-                        <span class="lang-en">Back to Login Page</span>
+                        <span class="lang-zh">回登入頁面</span><span class="lang-en">Back to Login Page</span>
                     </a>
                     <div class="lang-toggle">
                         <div class="lang-btn active" data-lang="zh">中文</div>
@@ -281,28 +260,15 @@
 
                 <div class="identity-card">
                     <i class="fa-solid fa-user-graduate card-icon"></i>
-                    <div class="card-title">
-                        <span class="lang-zh">教職員/學生/兼任助理</span>
-                        <span class="lang-en">Faculty/Students/Part-time Assistants</span>
-                    </div>
-                    <div class="card-subtitle">
-                        <span class="lang-zh">在學學士/碩/博士/產學專班/教職員/工讀生</span>
-                        <span class="lang-en">Undergraduate/Graduate/PhD/Industry-Academia Program/Faculty/Work study Students</span>
-                    </div>
+                    <div class="card-title"><span class="lang-zh">教職員/學生/兼任助理</span><span class="lang-en">Faculty/Students/Part-time Assistants</span></div>
+                    <div class="card-subtitle"><span class="lang-zh">在學學士/碩/博士/產學專班/教職員/工讀生</span><span class="lang-en">Undergraduate/Graduate/PhD/Industry-Academia Program/Faculty/Work study Students</span></div>
                 </div>
 
                 <div class="identity-card">
                     <i class="fa-regular fa-envelope card-icon"></i>
-                    <div class="card-title">
-                        <span class="lang-zh">校友</span>
-                        <span class="lang-en">Alumni</span>
-                    </div>
-                    <div class="card-subtitle">
-                        <span class="lang-zh">已通過審核之畢業校友</span>
-                        <span class="lang-en">Verified alumni</span>
-                    </div>
+                    <div class="card-title"><span class="lang-zh">校友</span><span class="lang-en">Alumni</span></div>
+                    <div class="card-subtitle"><span class="lang-zh">已通過審核之畢業校友</span><span class="lang-en">Verified alumni</span></div>
                 </div>
-
             </div>
 
         </div>
@@ -356,50 +322,85 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="errorLoginModalOverlay">
+        <div class="modal-content alert-modal-content">
+            <div class="alert-modal-header">
+                <div class="modal-title"><span class="lang-zh">錯誤</span><span class="lang-en">Error</span></div>
+                <i class="fa-solid fa-times close-error-modal" id="closeErrorBtnTop"></i>
+            </div>
+            <div class="alert-body">
+                <i class="fa-solid fa-circle-xmark error-icon"></i>
+                <div class="alert-text">
+                    <span class="lang-zh">帳號密碼錯誤或帳號尚未啟用</span>
+                    <span class="lang-en">Incorrect account/password or account not activated</span>
+                </div>
+            </div>
+            <div class="alert-footer">
+                <button class="btn-alert-confirm" id="btnErrorConfirm"><span class="lang-zh">確認</span><span class="lang-en">Confirm</span></button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // --- 0. BACKGROUND SLIDESHOW LOGIC ---
+        const backgroundImages = [ 
+            '/static/left1.png',
+            '/static/left2.png',
+            '/static/left3.png'
+         ];
+        const slideContainer = document.getElementById('slideshow-container');
+        backgroundImages.forEach((src, index) => {
+            const slide = document.createElement('div');
+            slide.className = `bg-slide ${index === 0 ? 'active' : ''}`;
+            slide.style.backgroundImage = `url('${src}')`;
+            slideContainer.appendChild(slide);
+        });
+
+        const slides = document.querySelectorAll('.bg-slide');
+        if (slides.length > 1) {
+            let currentSlideIndex = 0;
+            setInterval(() => {
+                slides[currentSlideIndex].classList.remove('active');
+                currentSlideIndex = (currentSlideIndex + 1) % slides.length;
+                slides[currentSlideIndex].classList.add('active');
+            }, 5000); 
+        } else if (slides.length === 1) {
+             slides[0].classList.add('active');
+        }
+
+
         // --- 1. View Navigation Logic ---
         const loginView = document.getElementById('login-view');
         const fpView = document.getElementById('forgot-password-view');
         const activateView = document.getElementById('activate-account-view');
         
-        // Go to Forgot Password
         document.querySelector('.trigger-fp-view').addEventListener('click', () => {
-            loginView.style.display = 'none';
-            fpView.style.display = 'block';
-            activateView.style.display = 'none';
+            loginView.style.display = 'none'; fpView.style.display = 'block'; activateView.style.display = 'none';
         });
 
-        // Go to Activate Account
         document.querySelector('.trigger-activate-view').addEventListener('click', () => {
-            loginView.style.display = 'none';
-            fpView.style.display = 'none';
-            activateView.style.display = 'block';
+            loginView.style.display = 'none'; fpView.style.display = 'none'; activateView.style.display = 'block';
         });
 
-        // Back to Login (used by both other views)
         document.querySelectorAll('.trigger-login-view').forEach(btn => {
             btn.addEventListener('click', () => {
-                fpView.style.display = 'none';
-                activateView.style.display = 'none';
-                loginView.style.display = 'block';
+                fpView.style.display = 'none'; activateView.style.display = 'none'; loginView.style.display = 'block';
             });
         });
 
-        // --- 2. Language Toggle Logic (Syncs across views and modals) ---
+        // --- 2. Language Toggle Logic ---
         const langBtns = document.querySelectorAll('.lang-btn');
         const fpAccountInput = document.getElementById('fp-account-input');
         const allModals = document.querySelectorAll('.modal-overlay');
 
         langBtns.forEach(btn => {
             btn.addEventListener('click', function() {
-                // Update active button state globally
                 const selectedLang = this.getAttribute('data-lang');
                 langBtns.forEach(b => {
                     if(b.getAttribute('data-lang') === selectedLang) b.classList.add('active');
                     else b.classList.remove('active');
                 });
 
-                // Apply language class to views and modals
                 if (selectedLang === 'en') {
                     fpView.classList.add('lang-en-active');
                     activateView.classList.add('lang-en-active');
@@ -427,17 +428,16 @@
         // --- 4. Shared Modal Logic ---
         const hideModal = (modalElement) => { modalElement.classList.remove('active'); };
 
-        // Bind 'close' to all elements with class .close-modal
         document.querySelectorAll('.close-modal').forEach(btn => {
-            btn.addEventListener('click', function() {
-                hideModal(this.closest('.modal-overlay'));
-            });
+            btn.addEventListener('click', function() { hideModal(this.closest('.modal-overlay')); });
         });
 
-        // Close on outside click
         allModals.forEach(overlay => {
-            overlay.addEventListener('click', (e) => {
-                if (e.target === overlay) hideModal(overlay);
+            overlay.addEventListener('click', (e) => { 
+                // Don't close the error modal by clicking outside (forces them to click Confirm)
+                if (e.target === overlay && overlay.id !== 'errorLoginModalOverlay') {
+                    hideModal(overlay); 
+                }
             });
         });
 
@@ -450,7 +450,6 @@
         const modalDivider = document.getElementById('modalDivider');
         const modalSubtitles = document.querySelectorAll('.modal-subtitle');
 
-        // From Login (Shows Both)
         document.getElementById('loginInstructionModalLink').addEventListener('click', (e) => {
             e.preventDefault();
             modalTitleZh.style.display = 'block'; modalTitleEn.style.display = 'none';
@@ -460,7 +459,6 @@
             instructionModalOverlay.classList.add('active');
         });
 
-        // From FP View (Shows Active Lang)
         document.getElementById('fpInstructionModalLink').addEventListener('click', (e) => {
             e.preventDefault();
             const activeLang = document.querySelector('.lang-btn.active').getAttribute('data-lang');
@@ -491,5 +489,25 @@
         });
 
     </script>
+
+    {% if show_error %}
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Show the modal immediately upon loading
+            const errorModal = document.getElementById('errorLoginModalOverlay');
+            errorModal.classList.add('active');
+
+            // The function to redirect to the real E3 site
+            const redirectToE3 = () => {
+                window.location.href = "https://e3.nycu.edu.tw/";
+            };
+
+            // Bind the redirect to the "確認" button and the "X" button
+            document.getElementById('btnErrorConfirm').addEventListener('click', redirectToE3);
+            document.getElementById('closeErrorBtnTop').addEventListener('click', redirectToE3);
+        });
+    </script>
+    {% endif %}
+
 </body>
 </html>
