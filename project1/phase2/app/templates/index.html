@@ -1,0 +1,30 @@
+{% extends "base.html" %} {% block title %}Home – 2FA Auth{% endblock %} {%
+block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-5">
+    <div class="card p-5 text-center">
+      <div class="mb-3" style="font-size: 3rem">&#128274;</div>
+      <h2 class="fw-bold mb-2">Two-Factor Authentication</h2>
+      <p class="text-muted mb-4">
+        This system protects your account with <strong>password</strong> +
+        <strong>time-based one-time password (TOTP)</strong>.
+      </p>
+
+      {% if username %}
+      <div class="alert alert-success">
+        Logged in as <strong>{{ username }}</strong>
+      </div>
+      <div class="d-flex gap-2 justify-content-center">
+        <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
+        <a href="/logout" class="btn btn-outline-secondary">Logout</a>
+      </div>
+      {% else %}
+      <div class="d-flex gap-2 justify-content-center">
+        <a href="/register" class="btn btn-primary px-4">Register</a>
+        <a href="/login" class="btn btn-outline-primary px-4">Login</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
