@@ -59,28 +59,18 @@ def get_totp_token(secret: str, time_step: int | None = None) -> str:
     return _hotp(key, time_step)
 
 
-def verify_totp(secret: str, code: str, grace: int = 5) -> bool:
+def verify_totp(secret: str, code: str, window: int = 1) -> bool:
     """
     Verify *code* against the TOTP secret.
 
-    Always accepts the current 30-second code.
-    Also accepts the previous step's code if we are within *grace* seconds
-    after a step boundary (user was slightly slow), and the next step's code
-    if we are within *grace* seconds before the next boundary (clock skew).
-    Default grace=5 gives a ±5-second tolerance at step edges.
+    Accepts codes from (current_step - window) to (current_step + window),
+    which gives a ±30-second grace period when window=1.
     """
-    now = time.time()
-    current_step = int(now) // 30
-    position = now % 30           # seconds elapsed in current step (0–29.99)
-
-    steps_to_check = {current_step}
-    if position < grace:          # within 5 s after a step boundary → allow prev
-        steps_to_check.add(current_step - 1)
-    if position > (30 - grace):   # within 5 s before next boundary → allow next
-        steps_to_check.add(current_step + 1)
-
-    token = code.strip()
-    return any(get_totp_token(secret, step) == token for step in steps_to_check)
+    current_step = int(time.time()) // 30
+    for delta in range(-window, window + 1):
+        if get_totp_token(secret, current_step + delta) == code.strip():
+            return True
+    return False
 
 
 # ---------------------------------------------------------------------------
