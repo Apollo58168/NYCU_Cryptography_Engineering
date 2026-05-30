@@ -90,7 +90,7 @@
                 <div class="retro-banner mb-6 text-xl">PQC-Audit Scanner</div>
                 <p class="text-sm font-bold mb-8 uppercase tracking-widest text-gray-700">Initialize Target Repository</p>
                 <div class="space-y-6">
-                    <input type="text" id="repo-url" placeholder="https://github.com/..." class="w-full bg-gray-100 border-3 border-black border-[3px] rounded-none px-4 py-3 text-black focus:outline-none focus:bg-yellow-50 font-bold">
+                    <input type="text" id="repo-url" placeholder="https://github.com/owner/repo.git" class="w-full bg-gray-100 border-3 border-black border-[3px] rounded-none px-4 py-3 text-black focus:outline-none focus:bg-yellow-50 font-bold">
                     <button onclick="startScan()" class="retro-btn w-full py-4 text-lg tracking-wider">START AUDIT</button>
                     <p id="error-message" class="text-red-600 font-bold text-sm hidden mt-2 bg-red-100 border-2 border-red-600 p-2"></p>
                 </div>
@@ -179,7 +179,7 @@
     </div>
 
     <script>
-        const BACKEND_API_URL = 'http://localhost:8000/api/scan'; 
+        const BACKEND_API_URL = '/api/scan'; 
 
         async function startScan() {
             const urlInput = document.getElementById('repo-url').value.trim();
@@ -187,6 +187,12 @@
             
             if (!urlInput) {
                 errorMsg.textContent = 'ERROR: Repository URL is required.';
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            if (!urlInput.endsWith('.git')) {
+                errorMsg.textContent = 'ERROR: Please input a Git clone URL ending with .git.';
                 errorMsg.classList.remove('hidden');
                 return;
             }
@@ -202,7 +208,10 @@
                     body: JSON.stringify({ repo_url: urlInput }) 
                 });
 
-                if (!response.ok) throw new Error(`Server returned ${response.status}`);
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.detail || `Server returned ${response.status}`);
+                }
                 const jsonData = await response.json();
                 
                 document.getElementById('loading-view').classList.add('hidden');
@@ -221,27 +230,37 @@
             document.getElementById('dashboard-view').classList.remove('hidden');
             document.getElementById('target-path').textContent = data.target_path || document.getElementById('repo-url').value;
             
-            document.getElementById('total-findings').textContent = data.summary?.total_findings || 0;
-            document.getElementById('quantum-vulnerable').textContent = data.summary?.quantum_vulnerable || 0;
-            document.getElementById('quantum-safe').textContent = data.summary?.quantum_safe || 0;
+            document.getElementById('total-findings').textContent = data.summary?.total_findings ?? 0;
+            document.getElementById('quantum-vulnerable').textContent = data.summary?.quantum_vulnerable ?? 0;
+            document.getElementById('quantum-safe').textContent = data.summary?.quantum_safe ?? 0;
 
             const listContainer = document.getElementById('findings-list');
             listContainer.innerHTML = ''; 
 
-            if (data.findings && data.findings.length > 0) {
-                data.findings.forEach((finding, index) => {
+            const findings = [...(data.findings || [])].sort(compareFindingRisk);
+            if (findings.length > 0) {
+                findings.forEach((finding, index) => {
                     const btn = document.createElement('button');
                     btn.className = 'finding-btn w-full text-left p-3 border-2 border-black bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:bg-yellow-200 transition-all shrink-0 mb-1';
                     btn.onclick = () => showDetail(finding, btn);
+                    const riskLevel = finding.risk_assessment?.risk_level || 'unknown';
+                    const riskClass = riskLevel === 'quantum_vulnerable'
+                        ? 'bg-red-600 text-white'
+                        : riskLevel === 'partially_vulnerable'
+                            ? 'bg-orange-400 text-black'
+                            : riskLevel === 'quantum_safe'
+                                ? 'bg-green-600 text-white'
+                                : 'bg-gray-700 text-white';
                     
                     btn.innerHTML = `
                         <div class="flex justify-between items-center mb-2">
-                            <span class="px-2 py-0.5 bg-red-600 text-white text-[10px] font-bold uppercase border border-black">
+                            <span class="px-2 py-0.5 ${riskClass} text-[10px] font-bold uppercase border border-black">
                                 ${finding.evidence.algorithm || 'Unknown'}
                             </span>
-                            <span class="text-[10px] font-black uppercase">risk score: ${finding.risk_assessment?.risk_score || 'N/A'}</span>
+                            <span class="text-[10px] font-black uppercase">risk score: ${finding.risk_assessment?.risk_score ?? 'N/A'}</span>
                         </div>
                         <p class="finding-path text-xs truncate font-bold break-all">${finding.evidence.file_path}</p>
+                        <p class="text-[10px] font-black uppercase mt-1">${riskLevel}</p>
                     `;
                     listContainer.appendChild(btn);
                     if (index === 0) btn.click();
@@ -249,6 +268,23 @@
             } else {
                 listContainer.innerHTML = '<p class="text-sm font-bold p-4 text-center">NO DATA FOUND.</p>';
             }
+        }
+
+        function compareFindingRisk(left, right) {
+            const rank = {
+                quantum_vulnerable: 0,
+                partially_vulnerable: 1,
+                unknown: 2,
+                quantum_safe: 3,
+            };
+            return (rank[left.risk_assessment?.risk_level] ?? 4) - (rank[right.risk_assessment?.risk_level] ?? 4);
+        }
+
+        function languageForPath(filePath) {
+            if (/\.(js|jsx|ts|tsx)$/.test(filePath)) return 'javascript';
+            if (/\.java$/.test(filePath)) return 'java';
+            if (/\.(c|cc|cpp|cxx|h|hh|hpp|hxx)$/.test(filePath)) return 'cpp';
+            return 'python';
         }
 
         function showDetail(finding, clickedBtn) {
@@ -276,9 +312,10 @@
 
             if (rawCode) {
                 snippetElement.removeAttribute('data-highlighted');
-                snippetElement.className = 'hljs language-python !bg-transparent w-full inline-block'; 
+                const language = languageForPath(finding.evidence.file_path || '');
+                snippetElement.className = `hljs language-${language} !bg-transparent w-full inline-block`; 
 
-                const highlightedHtml = hljs.highlight(rawCode, { language: 'python' }).value;
+                const highlightedHtml = hljs.highlight(rawCode, { language }).value;
                 const lines = highlightedHtml.split('\n');
                 
                 const formattedHtml = lines.map((lineHtml, index) => {
