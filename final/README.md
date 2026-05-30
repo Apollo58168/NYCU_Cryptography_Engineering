@@ -15,11 +15,19 @@
 ## 核心技術
 
 - **多語言 repository scanner**：載入本地或前端 clone 下來的 repository，忽略 `.git`、`.venv`、cache、build artifacts 等不需要分析的目錄。
+<<<<<<< HEAD
 - **Rule-based static cryptographic scanner**：針對 Python、JavaScript/TypeScript、Java、C/C++ 偵測 RSA、ECC、ECDSA、ECDH、DH、AES、SHA、HMAC、TLS config、certificate handling 與常見 cryptographic library API。
 - **Evidence extraction**：將 static match 轉成帶有檔案路徑、行號、程式碼片段、演算法、library、usage type 的 `CryptoEvidence`，讓後續分析不需要讀完整 source file。
 - **Gemini semantic analysis**：在非 `--skip-ai` 模式下，使用 Gemini API 判斷 evidence 是否是真實 cryptographic usage、是否 security-sensitive、是否是 test/example code，並支援 retry/backoff。
 - **Static fallback analysis**：在 `--skip-ai` 或前端模式下，不依賴 API key，直接根據 static evidence 產生保守分析結果。
 - **Quantum risk assessment**：根據演算法、用途、security sensitivity、test/example signal、evidence type、confidence 產生 `quantum_vulnerable`、`partially_vulnerable`、`quantum_safe` 或 `unknown` 風險等級與分數。
+=======
+- **Rule-based static cryptographic scanner**：針對 Python、JavaScript/TypeScript、Java、C/C++ 偵測 RSA、ECC、ECDSA、ECDH、DH、TLS config、certificate handling 與常見 cryptographic library API。
+- **Evidence extraction**：將 static match 轉成帶有檔案路徑、行號、程式碼片段、演算法、library、usage type 的 `CryptoEvidence`，讓後續分析不需要讀完整 source file。
+- **Gemini semantic analysis**：在非 `--skip-ai` 模式下，使用 Gemini API 判斷 evidence 是否是真實 cryptographic usage、是否 security-sensitive、是否是 test/example code，並支援 retry/backoff。
+- **Static fallback analysis**：在 `--skip-ai` 或前端模式下，不依賴 API key，直接根據 static evidence 產生保守分析結果。
+- **Quantum risk assessment**：根據演算法、用途、security sensitivity、test/example signal 產生 `quantum_vulnerable`、`partially_vulnerable`、`quantum_safe` 或 `unknown` 風險等級與分數。
+>>>>>>> 456a6c3 (frontend update)
 - **PQC migration recommendation**：依照風險與用途產生 ML-KEM、ML-DSA、SLH-DSA、hybrid migration 等候選遷移建議。
 - **Markdown / JSON report generator**：輸出人工可讀的 Markdown 報告與可供前端或其他工具整合的 JSON schema。
 - **FastAPI web UI**：提供 `/index.html` 前端與 `/api/scan` API，可輸入 `.git` clone URL 後直接分析並視覺化 findings。
@@ -197,6 +205,34 @@ uv run pqc-audit --target . --output ./reports --format both --skip-ai
 ```text
 ./reports/security-report.md
 ./reports/security-report.json
+```
+
+## 啟動前端
+
+在專案目錄執行：
+
+```bash
+uv run python server.py
+```
+
+然後開啟：
+
+```text
+http://localhost:8000/index.html
+```
+
+前端輸入欄請填入 `.git` clone URL，例如：
+
+```text
+https://github.com/owner/repo.git
+```
+
+前端目前使用 static analysis fallback，不需要 Gemini API key。
+
+如果你要直接用 uvicorn CLI，WSL 或跨環境瀏覽器建議明確指定 host：
+
+```bash
+uv run uvicorn server:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ## 支援語言
