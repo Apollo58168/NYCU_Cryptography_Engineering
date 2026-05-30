@@ -6,7 +6,24 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from pqc_audit.models import AuditReport, Finding, RISK_LEVELS
+from pqc_audit.models import AuditReport, Finding, RISK_LEVELS, USAGE_TYPES
+
+
+FINDING_CATEGORIES: tuple[str, ...] = (
+    "vulnerability",
+    "needs_review",
+    "quantum_safe",
+    "low_confidence",
+)
+CONFIDENCE_LEVELS: tuple[str, ...] = ("high", "medium", "low")
+EVIDENCE_TYPES: tuple[str, ...] = (
+    "api_call",
+    "import",
+    "config",
+    "keyword",
+    "comment_or_string",
+    "unknown",
+)
 
 
 class ReportGenerator:
@@ -36,12 +53,26 @@ class ReportGenerator:
         )
 
     def _build_summary(self, findings: list[Finding]) -> dict[str, Any]:
-        summary: dict[str, Any] = {"total_findings": len(findings)}
+        summary: dict[str, Any] = {
+            "total_findings": len(findings),
+            "category_counts": {category: 0 for category in FINDING_CATEGORIES},
+            "confidence_counts": {confidence: 0 for confidence in CONFIDENCE_LEVELS},
+            "evidence_type_counts": {evidence_type: 0 for evidence_type in EVIDENCE_TYPES},
+            "usage_type_counts": {usage_type: 0 for usage_type in USAGE_TYPES},
+            "algorithm_counts": {},
+        }
         for risk_level in RISK_LEVELS:
             summary[risk_level] = 0
 
         for finding in findings:
             summary[finding.risk_assessment.risk_level] += 1
+            summary["category_counts"][finding.risk_assessment.finding_category] += 1
+            summary["confidence_counts"][finding.risk_assessment.confidence] += 1
+            summary["evidence_type_counts"][finding.evidence.evidence_type] += 1
+            summary["usage_type_counts"][finding.evidence.usage_type] += 1
+
+            algorithm = finding.evidence.algorithm or finding.semantic_analysis.algorithm or "unknown"
+            summary["algorithm_counts"][algorithm] = summary["algorithm_counts"].get(algorithm, 0) + 1
 
         return summary
 
@@ -67,10 +98,22 @@ class ReportGenerator:
         lines.extend(
             [
                 "",
+                "## Finding Category Summary",
+                "",
+                "| Category | Count |",
+                "| --- | ---: |",
+            ]
+        )
+        for category in FINDING_CATEGORIES:
+            lines.append(f"| {category} | {report.summary['category_counts'][category]} |")
+
+        lines.extend(
+            [
+                "",
                 "## Findings Table",
                 "",
-                "| Evidence ID | File | Lines | Algorithm | Usage | Risk | Score |",
-                "| --- | --- | --- | --- | --- | --- | ---: |",
+                "| Evidence ID | File | Lines | Algorithm | Usage | Category | Confidence | Evidence | Risk | Score |",
+                "| --- | --- | --- | --- | --- | --- | --- | --- | --- | ---: |",
             ]
         )
 
@@ -90,6 +133,9 @@ class ReportGenerator:
                             f"{evidence.start_line}-{evidence.end_line}",
                             self._escape_table(algorithm),
                             self._escape_table(usage_type),
+                            risk.finding_category,
+                            risk.confidence,
+                            evidence.evidence_type,
                             risk.risk_level,
                             str(risk.risk_score),
                         ]
@@ -97,7 +143,7 @@ class ReportGenerator:
                     + " |"
                 )
         else:
-            lines.append("| No findings | - | - | - | - | - | - |")
+            lines.append("| No findings | - | - | - | - | - | - | - | - | - |")
 
         lines.extend(["", "## Detailed Findings", ""])
         if report.findings:
@@ -138,8 +184,13 @@ class ReportGenerator:
             f"- Algorithm: {evidence.algorithm or analysis.algorithm or 'unknown'}",
             f"- Library: {evidence.library or 'unknown'}",
             f"- Usage type: {evidence.usage_type or analysis.usage_type or 'unknown'}",
+            f"- Finding category: {risk.finding_category}",
+            f"- Confidence: {risk.confidence}",
+            f"- Evidence type: {evidence.evidence_type}",
+            f"- Source kind: {evidence.source_kind}",
             f"- Risk level: {risk.risk_level}",
             f"- Risk score: {risk.risk_score}",
+            f"- Display priority: {risk.display_priority}",
             f"- Risk reason: {risk.reason}",
             f"- Semantic analysis: {analysis.explanation}",
             f"- Recommended action: {recommendation.recommended_action}",

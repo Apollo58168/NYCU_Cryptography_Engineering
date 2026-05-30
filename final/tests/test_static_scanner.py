@@ -87,6 +87,31 @@ def test_detects_ssl_context_rules() -> None:
     assert_has_match(matches, "ssl_create_default_context", "TLS", "ssl")
 
 
+def test_detects_python_quantum_safe_rules() -> None:
+    matches = scan(
+        "import hashlib\n"
+        "import hmac\n"
+        "from cryptography.hazmat.primitives import hashes, hmac as crypto_hmac\n"
+        "from cryptography.hazmat.primitives.ciphers import algorithms\n"
+        "digest = hashlib.sha256(data).digest()\n"
+        "tag = hmac.new(key, data, 'sha256').digest()\n"
+        "hashes.SHA3_256()\n"
+        "crypto_hmac.HMAC(key, hashes.SHA256())\n"
+        "algorithms.AES(key)\n"
+        "from Crypto.Cipher import AES\n"
+    )
+
+    hash_match = assert_has_match(matches, "py_hashlib_sha2", "SHA-2", "hashlib")
+    assert_has_match(matches, "py_hmac_new", "HMAC", "hmac")
+    assert_has_match(matches, "py_cryptography_hashes_sha3", "SHA-3", "cryptography")
+    assert_has_match(matches, "py_cryptography_aes", "AES", "cryptography")
+    assert_has_match(matches, "pycryptodome_import_aes", "AES", "PyCryptodome")
+
+    assert hash_match.evidence_type == "api_call"
+    assert hash_match.source_kind == "code"
+    assert hash_match.confidence == "high"
+
+
 def test_detects_javascript_typescript_crypto_rules() -> None:
     matches = scan_file(
         "const { generateKeyPairSync, createECDH } = require('crypto');\n"
@@ -123,6 +148,23 @@ def test_detects_jose_jsonwebtoken_and_node_forge_rules() -> None:
     assert_has_match(matches, "js_jsonwebtoken_ecdsa_algorithm", "ECDSA", "jsonwebtoken")
     assert_has_match(matches, "js_node_forge_rsa_generate_keypair", "RSA", "node-forge")
     assert_has_match(matches, "js_node_forge_rsa_key_from_pem", "RSA", "node-forge")
+
+
+def test_detects_javascript_quantum_safe_rules() -> None:
+    matches = scan_file(
+        "crypto.createHash('sha256').update(data).digest('hex');\n"
+        "crypto.createHmac('sha512', key).update(data).digest();\n"
+        "await crypto.subtle.digest('SHA-256', data);\n"
+        "await crypto.subtle.importKey('raw', key, 'AES-GCM', false, ['encrypt']);\n"
+        "await crypto.subtle.importKey('raw', key, { name: 'HMAC' }, false, ['sign']);\n",
+        "crypto.ts",
+    )
+
+    assert_has_match(matches, "js_crypto_create_hash_sha2", "SHA-2", "node:crypto")
+    assert_has_match(matches, "js_crypto_create_hmac", "HMAC", "node:crypto")
+    assert_has_match(matches, "js_webcrypto_digest_sha2", "SHA-2", "WebCrypto")
+    assert_has_match(matches, "js_webcrypto_aes", "AES", "WebCrypto")
+    assert_has_match(matches, "js_webcrypto_hmac", "HMAC", "WebCrypto")
 
 
 def test_detects_java_jca_rules() -> None:
@@ -166,6 +208,21 @@ def test_detects_java_keystore_tls_and_bouncycastle_rules() -> None:
     assert_has_match(matches, "java_bouncycastle_ecdh_agreement", "ECDH", "BouncyCastle")
     assert_has_match(matches, "java_bouncycastle_pem_parser", None, "BouncyCastle")
     assert_has_match(matches, "java_keypairgenerator_rsa", "RSA", "Java JCA")
+
+
+def test_detects_java_quantum_safe_rules() -> None:
+    matches = scan_file(
+        'MessageDigest.getInstance("SHA-256");\n'
+        'Mac.getInstance("HmacSHA256");\n'
+        'Cipher.getInstance("AES/GCM/NoPadding");\n'
+        'KeyGenerator.getInstance("AES");\n',
+        "App.java",
+    )
+
+    assert_has_match(matches, "java_message_digest_sha2", "SHA-2", "Java JCA")
+    assert_has_match(matches, "java_mac_hmac_sha2", "HMAC", "Java JCA")
+    assert_has_match(matches, "java_cipher_aes", "AES", "Java JCE")
+    assert_has_match(matches, "java_keygenerator_aes", "AES", "Java JCA")
 
 
 def test_detects_c_cpp_openssl_rules() -> None:
@@ -221,6 +278,19 @@ def test_detects_openssl_evp_rules() -> None:
     assert_has_match(matches, "openssl_der_read_rsa_key", "RSA", "OpenSSL")
 
 
+def test_detects_openssl_quantum_safe_rules() -> None:
+    matches = scan_file(
+        "EVP_sha256();\n"
+        "HMAC(EVP_sha256(), key, key_len, data, data_len, out, &out_len);\n"
+        "EVP_aes_256_gcm();\n",
+        "crypto.cpp",
+    )
+
+    assert_has_match(matches, "openssl_evp_sha2", "SHA-2", "OpenSSL")
+    assert_has_match(matches, "openssl_hmac", "HMAC", "OpenSSL")
+    assert_has_match(matches, "openssl_evp_aes", "AES", "OpenSSL")
+
+
 def test_detects_pycryptodome_rsa_rules() -> None:
     matches = scan(
         "from Crypto.PublicKey import RSA\n"
@@ -241,7 +311,11 @@ def test_comments_and_strings_become_candidates() -> None:
     ecc_match = assert_has_match(matches, "keyword_ecc", "ECC", None)
 
     assert rsa_match.line_number == 1
+    assert rsa_match.source_kind == "comment"
+    assert rsa_match.confidence == "low"
     assert ecc_match.line_number == 2
+    assert ecc_match.source_kind == "string"
+    assert ecc_match.confidence == "low"
 
 
 def test_syntax_error_falls_back_to_text_scan() -> None:

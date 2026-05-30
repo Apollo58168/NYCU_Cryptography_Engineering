@@ -184,4 +184,4 @@ def test_static_fallback_analysis_uses_evidence_fields() -> None:
     assert analysis.evidence_id == evidence.evidence_id
     assert analysis.algorithm == "RSA"
     assert analysis.usage_type == "key_generation"
-    assert analysis.confidence == 0.5
+    assert analysis.confidence == 0.65

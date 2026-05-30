@@ -43,6 +43,9 @@ def make_finding(evidence_id: str, risk_level: str, risk_score: int = 80) -> Fin
         risk_score=risk_score,
         risk_factors=["RSA"],
         reason="RSA is vulnerable to Shor's Algorithm.",
+        finding_category="vulnerability" if risk_level == "quantum_vulnerable" else "needs_review",
+        display_priority=10,
+        confidence="high",
     )
     recommendation = MigrationRecommendation(
         evidence_id=evidence_id,
@@ -70,6 +73,38 @@ def test_generate_builds_summary_counts(tmp_path: Path) -> None:
     assert datetime.fromisoformat(report.generated_at)
     assert report.summary == {
         "total_findings": 4,
+        "category_counts": {
+            "vulnerability": 1,
+            "needs_review": 3,
+            "quantum_safe": 0,
+            "low_confidence": 0,
+        },
+        "confidence_counts": {
+            "high": 4,
+            "medium": 0,
+            "low": 0,
+        },
+        "evidence_type_counts": {
+            "api_call": 0,
+            "import": 0,
+            "config": 0,
+            "keyword": 0,
+            "comment_or_string": 0,
+            "unknown": 4,
+        },
+        "usage_type_counts": {
+            "encryption": 0,
+            "signature": 0,
+            "key_exchange": 0,
+            "key_generation": 4,
+            "certificate_handling": 0,
+            "tls_configuration": 0,
+            "hashing": 0,
+            "mac": 0,
+            "symmetric_encryption": 0,
+            "unknown": 0,
+        },
+        "algorithm_counts": {"RSA": 4},
         "quantum_safe": 1,
         "partially_vulnerable": 1,
         "quantum_vulnerable": 1,
@@ -93,11 +128,12 @@ def test_write_markdown_contains_report_sections(tmp_path: Path) -> None:
     assert "# PQC Audit Security Report" in content
     assert "## Scan Summary" in content
     assert "## Risk Summary" in content
+    assert "## Finding Category Summary" in content
     assert "## Findings Table" in content
     assert "## Detailed Findings" in content
     assert "## Errors and Skipped Files" in content
     assert "## Migration Summary" in content
-    assert "| app.py:10-12 | app.py | 10-12 | RSA | key_generation | quantum_vulnerable | 95 |" in content
+    assert "| app.py:10-12 | app.py | 10-12 | RSA | key_generation | vulnerability | high | unknown | quantum_vulnerable | 95 |" in content
     assert "RSA is vulnerable to Shor's Algorithm." in content
     assert "failed to read ignored.py" in content
     assert "ML-KEM" in content
@@ -118,7 +154,14 @@ def test_write_json_outputs_valid_report(tmp_path: Path) -> None:
     assert data["generated_at"] == report.generated_at
     assert data["summary"]["total_findings"] == 1
     assert data["summary"]["quantum_vulnerable"] == 1
+    assert data["summary"]["category_counts"]["vulnerability"] == 1
+    assert data["findings"][0]["risk_assessment"]["finding_category"] == "vulnerability"
+    assert data["findings"][0]["risk_assessment"]["display_priority"] == 10
+    assert data["findings"][0]["risk_assessment"]["confidence"] == "high"
     assert data["findings"][0]["evidence"]["algorithm"] == "RSA"
+    assert data["findings"][0]["evidence"]["evidence_type"] == "unknown"
+    assert data["findings"][0]["evidence"]["source_kind"] == "code"
+    assert data["findings"][0]["evidence"]["confidence"] == "medium"
     assert data["errors"] == ["skipped vendor.zip"]
 
 
@@ -133,6 +176,38 @@ def test_empty_report_output(tmp_path: Path) -> None:
 
     assert report.summary == {
         "total_findings": 0,
+        "category_counts": {
+            "vulnerability": 0,
+            "needs_review": 0,
+            "quantum_safe": 0,
+            "low_confidence": 0,
+        },
+        "confidence_counts": {
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+        },
+        "evidence_type_counts": {
+            "api_call": 0,
+            "import": 0,
+            "config": 0,
+            "keyword": 0,
+            "comment_or_string": 0,
+            "unknown": 0,
+        },
+        "usage_type_counts": {
+            "encryption": 0,
+            "signature": 0,
+            "key_exchange": 0,
+            "key_generation": 0,
+            "certificate_handling": 0,
+            "tls_configuration": 0,
+            "hashing": 0,
+            "mac": 0,
+            "symmetric_encryption": 0,
+            "unknown": 0,
+        },
+        "algorithm_counts": {},
         "quantum_safe": 0,
         "partially_vulnerable": 0,
         "quantum_vulnerable": 0,
