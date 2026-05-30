@@ -199,21 +199,16 @@ uv run pqc-audit --target . --output ./reports --format both --skip-ai
 ./reports/security-report.json
 ```
 
-## 快速開始：使用 Web 介面分析 GitHub Repository
+## 支援語言
 
-如果要透過網頁輸入 GitHub repository 連結並執行分析：
+目前支援 rule-based static scanning：
 
-```bash
-uv run python server.py
-```
-
-接著開啟：
-
-```text
-http://127.0.0.1:8000
-```
-
-在網頁中輸入 GitHub repository URL 後即可開始分析。
+| 語言 | 副檔名 | 主要偵測目標 |
+| --- | --- | --- |
+| Python | `.py` | `cryptography`、`ssl`、PyCryptodome、RSA/ECC/ECDH/DH 關鍵字 |
+| JavaScript / TypeScript | `.js`、`.jsx`、`.ts`、`.tsx` | Node.js `crypto`、WebCrypto、`jose`、`jsonwebtoken`、`node-forge`、RSA/ECDSA/ECDH/DH pattern |
+| Java | `.java` | JCA/JCE、KeyStore、JSSE TLS config、BouncyCastle：`KeyPairGenerator`、`Cipher`、`Signature`、`KeyAgreement`、`SSLContext` |
+| C / C++ | `.c`、`.cc`、`.cpp`、`.cxx`、`.h`、`.hh`、`.hpp`、`.hxx` | OpenSSL classic APIs 與 EVP APIs：`RSA_generate_key_ex`、`EVP_PKEY_*`、`EVP_DigestSign*`、`EVP_DigestVerify*`、`EVP_PKEY_derive/encrypt/decrypt`、`EC_KEY_*`、`ECDSA_*`、`ECDH_*`、`DH_*` |
 
 ## 使用 Gemini API
 
