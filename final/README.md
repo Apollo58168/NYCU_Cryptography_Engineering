@@ -68,18 +68,12 @@ dependencies = [
 ]
 ```
 
-如果修改過 `pyproject.toml`，請重新執行：
-
-```bash
-uv sync
-```
-
 ### 啟動 Web App
 
 在專案根目錄執行：
 
 ```bash
-uv run server.py
+uv run python server.py
 ```
 
 啟動後會開啟本地網站：
@@ -210,7 +204,7 @@ uv run pqc-audit --target . --output ./reports --format both --skip-ai
 如果要透過網頁輸入 GitHub repository 連結並執行分析：
 
 ```bash
-uv run server.py
+uv run python server.py
 ```
 
 接著開啟：
