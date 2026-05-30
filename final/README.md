@@ -29,6 +29,153 @@
 - Python 3.11+
 - `uv`
 
+## Web 介面：輸入 GitHub Repo 連結分析
+
+本專案也提供一個簡易 Web 介面，可以透過瀏覽器輸入 GitHub repository 連結，後端會自動：
+
+1. Clone 指定的 GitHub repository
+2. 執行 `pqc-audit` 掃描
+3. 產生 JSON 報告
+4. 將分析結果回傳到網頁顯示
+
+### Web 介面額外需求
+
+除了原本的環境需求之外，使用 Web 介面還需要：
+
+- Git
+- 可連線到 GitHub
+- FastAPI
+- Uvicorn
+- 若使用 Gemini 分析，需要有效的 `GEMINI_API_KEY`
+
+### 安裝依賴
+
+第一次使用前，請先同步 uv 環境：
+
+```bash
+uv sync
+```
+
+請確認 `pyproject.toml` 的 `dependencies` 內包含 `fastapi` 與 `uvicorn[standard]`，例如：
+
+```toml
+dependencies = [
+    "fastapi>=0.116.0",
+    "mypy>=2.1.0",
+    "pytest>=9.0.3",
+    "ruff>=0.15.15",
+    "uvicorn[standard]>=0.48.0",
+]
+```
+
+如果修改過 `pyproject.toml`，請重新執行：
+
+```bash
+uv sync
+```
+
+### 啟動 Web App
+
+在專案根目錄執行：
+
+```bash
+uv run server.py
+```
+
+啟動後會開啟本地網站：
+
+```text
+http://127.0.0.1:8000
+```
+
+如果瀏覽器沒有自動開啟，可以手動打開：
+
+```text
+http://127.0.0.1:8000
+```
+
+### 使用方式
+
+1. 開啟網頁
+2. 在輸入框貼上 GitHub repository URL，例如：
+
+```text
+https://github.com/example/example-python-project
+```
+
+3. 按下分析按鈕
+4. 系統會自動 clone repository 並執行 PQC 稽核
+5. 分析完成後，網頁會顯示掃描結果
+
+### Web API
+
+Web 介面會呼叫後端 API：
+
+```text
+POST /api/scan
+```
+
+Request body 範例：
+
+```json
+{
+  "repo_url": "https://github.com/example/example-python-project"
+}
+```
+
+後端會：
+
+1. 建立暫存資料夾
+2. 使用 `git clone` 下載目標 repository
+3. 執行：
+
+```bash
+uv run pqc-audit --target <repo_dir> --output <report_dir> --format json
+```
+
+4. 讀取產生的 `security-report.json`
+5. 將 JSON 結果回傳給前端
+6. 掃描完成後自動清除暫存資料夾
+
+### Web 專案結構
+
+目前 Web 介面需要以下檔案存在於專案根目錄：
+
+```text
+.
+├── index.html
+├── server.py
+├── pyproject.toml
+├── uv.lock
+├── src/
+├── tests/
+└── reports/
+```
+
+其中：
+
+- `index.html`：前端頁面
+- `server.py`：FastAPI 後端服務
+- `src/`：`pqc-audit` CLI 工具原始碼
+- `reports/`：本地掃描報告輸出資料夾
+
+### Web 介面注意事項
+
+- Web 模式預設會呼叫後端的 `pqc-audit` 指令。
+- 如果沒有使用 `--skip-ai`，請先確認 `.env` 中已設定：
+
+```text
+GEMINI_API_KEY=你的 Gemini API key
+```
+
+- 後端會暫時 clone GitHub repository 到系統暫存資料夾。
+- 掃描完成後，暫存資料夾會自動刪除。
+- 如果在 WSL、Docker、Remote Container 或無 GUI 的 Linux 環境中執行，瀏覽器可能不會自動開啟。此時請手動在瀏覽器中開啟：
+
+```text
+http://127.0.0.1:8000
+```
+
 ## 執行測試
 
 在專案目錄執行：
@@ -58,44 +205,21 @@ uv run pqc-audit --target . --output ./reports --format both --skip-ai
 ./reports/security-report.json
 ```
 
-## 啟動前端
+## 快速開始：使用 Web 介面分析 GitHub Repository
 
-在專案目錄執行：
-
-```bash
-uv run python server.py
-```
-
-然後開啟：
-
-```text
-http://localhost:8000/index.html
-```
-
-前端輸入欄請填入 `.git` clone URL，例如：
-
-```text
-https://github.com/owner/repo.git
-```
-
-前端目前使用 static analysis fallback，不需要 Gemini API key。
-
-如果你要直接用 uvicorn CLI，WSL 或跨環境瀏覽器建議明確指定 host：
+如果要透過網頁輸入 GitHub repository 連結並執行分析：
 
 ```bash
-uv run uvicorn server:app --reload --host 0.0.0.0 --port 8000
+uv run server.py
 ```
 
-## 支援語言
+接著開啟：
 
-目前支援 rule-based static scanning：
+```text
+http://127.0.0.1:8000
+```
 
-| 語言 | 副檔名 | 主要偵測目標 |
-| --- | --- | --- |
-| Python | `.py` | `cryptography`、`ssl`、PyCryptodome、`hashlib`、`hmac`、RSA/ECC/ECDH/DH/AES/SHA/HMAC 關鍵字 |
-| JavaScript / TypeScript | `.js`、`.jsx`、`.ts`、`.tsx` | Node.js `crypto`、WebCrypto、`jose`、`jsonwebtoken`、`node-forge`、RSA/ECDSA/ECDH/DH/AES/SHA/HMAC pattern |
-| Java | `.java` | JCA/JCE、KeyStore、JSSE TLS config、BouncyCastle：`KeyPairGenerator`、`Cipher`、`Signature`、`KeyAgreement`、`MessageDigest`、`Mac`、`SSLContext` |
-| C / C++ | `.c`、`.cc`、`.cpp`、`.cxx`、`.h`、`.hh`、`.hpp`、`.hxx` | OpenSSL classic APIs 與 EVP APIs：`RSA_generate_key_ex`、`EVP_PKEY_*`、`EVP_DigestSign*`、`EVP_DigestVerify*`、`EVP_PKEY_derive/encrypt/decrypt`、`EVP_sha*`、`HMAC`、`EVP_aes_*`、`EC_KEY_*`、`ECDSA_*`、`ECDH_*`、`DH_*` |
+在網頁中輸入 GitHub repository URL 後即可開始分析。
 
 ## 使用 Gemini API
 
