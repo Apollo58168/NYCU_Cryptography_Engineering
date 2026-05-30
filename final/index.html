@@ -4,34 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PQC-Audit Dashboard</title>
-    
+
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
-    
+
     <style>
-        /* 復古點陣背景 */
         body {
             background-color: #f4f4f0;
             background-image: radial-gradient(#cbd5e1 2px, transparent 2px);
             background-size: 24px 24px;
-            font-family: 'Courier New', Courier, monospace; 
+            font-family: 'Courier New', Courier, monospace;
         }
 
-        /* 訂製復古卷軸 */
         ::-webkit-scrollbar { width: 12px; height: 12px; }
         ::-webkit-scrollbar-track { background: #e2e8f0; border-left: 2px solid #000; }
         ::-webkit-scrollbar-thumb { background: #000; border: 2px solid #e2e8f0; }
-        
-        /* 針對深色程式碼區塊的卷軸微調 */
         .code-scroll::-webkit-scrollbar-track { background: #282c34; border-left: 1px solid #1e1e1e; }
         .code-scroll::-webkit-scrollbar-thumb { background: #4b5363; border: 2px solid #282c34; border-radius: 6px; }
 
-        /* Loading 動畫 */
         .animate-pulse-fast { animation: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
 
-        /* 復古硬陰影 UI 元件 */
         .retro-box {
             background: #ffffff;
             border: 3px solid #000000;
@@ -39,7 +33,6 @@
             border-radius: 4px;
         }
 
-        /* 頂部橫幅/標題 */
         .retro-banner {
             background: #000000;
             color: #ffffff;
@@ -48,12 +41,11 @@
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 0.1em;
-            clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%); 
+            clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%);
         }
 
-        /* 按鈕特效 */
         .retro-btn {
-            background: #FFD700; 
+            background: #FFD700;
             color: #000000;
             border: 3px solid #000000;
             box-shadow: 4px 4px 0px #000000;
@@ -65,142 +57,88 @@
             transform: translate(4px, 4px);
             box-shadow: 0px 0px 0px #000000;
         }
-        
-        /* 列表按鈕特效與字體反白 */
-        .finding-btn {
-            color: #1f2937; 
-        }
+
+        .finding-btn { color: #1f2937; }
         .list-btn-active {
             background: #000000;
-            color: #ffffff !important; 
+            color: #ffffff !important;
             transform: translate(2px, 2px);
             box-shadow: 0px 0px 0px #000000;
         }
-        .list-btn-active p.finding-path {
-            color: #e5e7eb !important; 
+        .list-btn-active p.finding-path { color: #e5e7eb !important; }
+        .list-btn-active .muted-on-active { color: #e5e7eb !important; }
+
+        .tab-btn {
+            border: 2px solid #000;
+            background: white;
+            box-shadow: 3px 3px 0 #000;
+            font-weight: 900;
+            text-transform: uppercase;
+            font-size: 10px;
+            padding: 8px 10px;
+            transition: all 0.1s;
+        }
+        .tab-btn-active {
+            background: #000;
+            color: #fff;
+            transform: translate(3px, 3px);
+            box-shadow: 0 0 0 #000;
         }
 
-        /* =========================================
-           🦖 滿版自適應小恐龍跑道（真實重力拋物線版）
-           ========================================= */
-        .dino-scene {
-            position: relative;
-            height: 90px; 
-            overflow: hidden; 
-            margin-bottom: -4px;
+        .badge {
+            display: inline-block;
+            border: 1px solid #000;
+            padding: 1px 6px;
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            line-height: 1.3;
         }
 
-        /* 復古點陣地平線 */
+        .dino-scene { position: relative; height: 90px; overflow: hidden; margin-bottom: -4px; }
         .dino-ground {
-            position: absolute;
-            bottom: 12px;
-            left: 0;
-            width: 100%;
-            height: 2px;
+            position: absolute; bottom: 12px; left: 0; width: 100%; height: 2px;
             background-image: linear-gradient(to right, #666 70%, transparent 70%);
             background-size: 6px 100%;
         }
-
-        /* 雲朵：滿滿的雲，交錯出現 */
         .dino-cloud {
-            position: absolute;
-            width: 46px;
-            height: 14px;
+            position: absolute; width: 46px; height: 14px;
             background: url('https://raw.githubusercontent.com/wayou/t-rex-runner/gh-pages/assets/default_100_percent/100-offline-sprite.png') no-repeat;
-            background-position: -86px -2px;
-            opacity: 1.0;
+            background-position: -86px -2px; opacity: 1.0;
         }
         .cloud-1 { top: 12px; animation: cloud-move 12s linear infinite; animation-delay: 0s; }
         .cloud-2 { top: 28px; animation: cloud-move 18s linear infinite; animation-delay: -5s; }
         .cloud-3 { top: 18px; animation: cloud-move 15s linear infinite; animation-delay: -10s; }
-
-        /* 仙人掌共同基礎 */
         .dino-cactus {
-            position: absolute;
-            bottom: 12px;
+            position: absolute; bottom: 12px;
             background: url('https://raw.githubusercontent.com/wayou/t-rex-runner/gh-pages/assets/default_100_percent/100-offline-sprite.png') no-repeat;
-            /* 仙人掌統一 2.5 秒週期，由 100% 走到 -10% */
             animation: cactus-move 2.5s linear infinite;
         }
-
-        /* 仙人掌 1：小仙人掌 */
-        .dino-cactus.cactus-1 {
-            width: 17px;
-            height: 35px;
-            background-position: -228px -2px;
-            animation-delay: 0s;
-        }
-
-        /* 仙人掌 2：中仙人掌 (完美錯開) */
+        .dino-cactus.cactus-1 { width: 17px; height: 35px; background-position: -228px -2px; animation-delay: 0s; }
         .dino-cactus.cactus-2 {
-            width: 25px;
-            height: 50px;
-            background-position: -332px -2px;
-            transform: scale(0.85);
-            transform-origin: bottom left;
-            animation-delay: -1.25s; /* 精確的 -50% 週期 */
-            z-index: 5;
+            width: 25px; height: 50px; background-position: -332px -2px;
+            transform: scale(0.85); transform-origin: bottom left; animation-delay: -1.25s; z-index: 5;
         }
-
-        /* 小恐龍 (主畫面版) */
         .chrome-dino {
-            position: absolute;
-            bottom: 12px;
-            left: 15%; 
-            width: 44px;
-            height: 47px;
+            position: absolute; bottom: 12px; left: 15%; width: 44px; height: 47px;
             background: url('https://raw.githubusercontent.com/wayou/t-rex-runner/gh-pages/assets/default_100_percent/100-offline-sprite.png') no-repeat;
-            background-position: -848px 0;
-            transform: scale(0.75);
-            transform-origin: bottom left;
-            z-index: 10;
-            animation: 
-                dino-run 0.2s steps(2) infinite,
-                dino-jump-math 2.5s linear infinite; 
+            background-position: -848px 0; transform: scale(0.75); transform-origin: bottom left; z-index: 10;
+            animation: dino-run 0.2s steps(2) infinite, dino-jump-math 2.5s linear infinite;
         }
-
-        /* 小恐龍 (讀取畫面版) */
         .mini-dino-loading {
-            width: 44px;
-            height: 47px;
+            width: 44px; height: 47px;
             background: url('https://raw.githubusercontent.com/wayou/t-rex-runner/gh-pages/assets/default_100_percent/100-offline-sprite.png') no-repeat;
-            background-position: -848px 0;
-            animation: dino-run 0.2s steps(2) infinite;
-            transform: scale(1.2);
-            margin-bottom: 1.5rem;
+            background-position: -848px 0; animation: dino-run 0.2s steps(2) infinite;
+            transform: scale(1.2); margin-bottom: 1.5rem;
         }
-
-        /* === 動畫時間軸設定 === */
-        @keyframes cloud-move {
-            0% { left: 100%; }
-            100% { left: -60px; }
-        }
-
-        @keyframes cactus-move {
-            0% { left: 100%; }
-            100% { left: -10%; } 
-        }
-
-        @keyframes dino-run {
-            0% { background-position: -936px 0; }
-            100% { background-position: -1024px 0; }
-        }
-
-        /* 真實物理重力跳躍曲線 */
+        @keyframes cloud-move { 0% { left: 100%; } 100% { left: -60px; } }
+        @keyframes cactus-move { 0% { left: 100%; } 100% { left: -10%; } }
+        @keyframes dino-run { 0% { background-position: -936px 0; } 100% { background-position: -1024px 0; } }
         @keyframes dino-jump-math {
-            /* 第一段跑：抵達起跳點前 */
-            0%, 20% { bottom: 12px; animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1); } /* 準備減速上升 */
-            
-            /* 第一跳：精準在 25.5% 閃過仙人掌 2 */
-            25.5% { bottom: 55px; animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0); } /* 到達頂點，準備加速落下 */
-            
-            /* 落地繼續跑 */
-            31%, 70% { bottom: 12px; animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1); } /* 準備減速上升 */
-            
-            /* 第二跳：精準在 75.5% 閃過仙人掌 1 */
-            75.5% { bottom: 55px; animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0); } /* 到達頂點，準備加速落下 */
-            
-            /* 落地完成迴圈 */
+            0%, 20% { bottom: 12px; animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1); }
+            25.5% { bottom: 55px; animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0); }
+            31%, 70% { bottom: 12px; animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1); }
+            75.5% { bottom: 55px; animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0); }
             81%, 100% { bottom: 12px; }
         }
     </style>
@@ -214,67 +152,83 @@
                 <div class="retro-banner mb-6 text-xl">PQC-Audit Scanner</div>
                 <p class="text-sm font-bold mb-8 uppercase tracking-widest text-gray-700">Initialize Target Repository</p>
                 <div class="space-y-6">
-                    <input type="text" id="repo-url" placeholder="https://github.com/owner/repo.git" class="w-full bg-gray-100 border-3 border-black border-[3px] rounded-none px-4 py-3 text-black focus:outline-none focus:bg-yellow-50 font-bold">
+                    <input type="text" id="repo-url" placeholder="https://github.com/owner/repo.git" class="w-full bg-gray-100 border-[3px] border-black rounded-none px-4 py-3 text-black focus:outline-none focus:bg-yellow-50 font-bold">
                     <button onclick="startScan()" class="retro-btn w-full py-4 text-lg tracking-wider">START AUDIT</button>
+                    <p class="text-xs font-bold text-gray-600 leading-relaxed">
+                        Input a GitHub repository clone URL. The backend will clone the repo and run PQC audit.
+                    </p>
                     <p id="error-message" class="text-red-600 font-bold text-sm hidden mt-2 bg-red-100 border-2 border-red-600 p-2"></p>
                 </div>
             </div>
         </div>
 
         <div id="loading-view" class="hidden flex-1 flex flex-col items-center justify-center">
-            <div class="retro-box p-10 flex flex-col items-center border-4 border-dashed">
+            <div class="retro-box p-10 flex flex-col items-center border-4 border-dashed text-center max-w-xl">
                 <div class="mini-dino-loading"></div>
-                <h2 class="text-xl font-bold tracking-widest uppercase animate-pulse-fast">Analyzing Codebase...</h2>
-                <p class="text-sm font-bold text-gray-500 mt-2 uppercase">Please wait</p>
+                <h2 class="text-xl font-bold tracking-widest uppercase animate-pulse-fast">Scanning repository...</h2>
+                <p class="text-sm font-bold text-gray-500 mt-2 uppercase leading-relaxed">
+                    Cloning target repo and running PQC audit. This may take a few minutes.
+                </p>
             </div>
         </div>
 
         <div id="dashboard-view" class="hidden flex-1 flex flex-col">
-            
+
             <header class="mb-8 flex justify-between items-end border-b-4 border-black pb-4 gap-4">
                 <div class="shrink-0">
                     <h1 class="text-3xl font-black tracking-tighter uppercase mb-2">Audit Dashboard</h1>
                     <p class="text-sm font-bold text-gray-600 uppercase">Target: <span id="target-path" class="text-black bg-yellow-200 px-2 py-0.5 border border-black"></span></p>
                 </div>
 
-                <div class="dino-scene flex-1 hidden sm:block"> 
+                <div class="dino-scene flex-1 hidden sm:block">
                     <div class="dino-cloud cloud-1"></div>
                     <div class="dino-cloud cloud-2"></div>
                     <div class="dino-cloud cloud-3"></div>
                     <div class="dino-ground"></div>
-                    <div class="dino-cactus cactus-1"></div> 
-                    <div class="dino-cactus cactus-2"></div> 
+                    <div class="dino-cactus cactus-1"></div>
+                    <div class="dino-cactus cactus-2"></div>
                     <div class="chrome-dino"></div>
                 </div>
 
                 <button onclick="location.reload()" class="retro-btn px-6 py-2 text-sm shrink-0">NEW SCAN</button>
             </header>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="retro-box p-6 flex flex-col justify-between">
-                    <h3 class="text-sm font-bold text-gray-700 uppercase tracking-widest border-b-2 border-black pb-2 mb-4">Total Findings</h3>
-                    <p id="total-findings" class="text-5xl font-black text-black">0</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+                <div class="retro-box p-5 flex flex-col justify-between border-red-600 bg-red-50">
+                    <h3 class="text-xs font-bold text-red-700 uppercase tracking-widest border-b-2 border-red-600 pb-2 mb-4">Vulnerabilities</h3>
+                    <p id="summary-vulnerability" class="text-4xl font-black text-red-600">0</p>
                 </div>
-                <div class="retro-box p-6 flex flex-col justify-between border-red-600 bg-red-50">
-                    <h3 class="text-sm font-bold text-red-700 uppercase tracking-widest border-b-2 border-red-600 pb-2 mb-4">Quantum Vulnerable</h3>
-                    <p id="quantum-vulnerable" class="text-5xl font-black text-red-600">0</p>
+                <div class="retro-box p-5 flex flex-col justify-between border-orange-500 bg-orange-50">
+                    <h3 class="text-xs font-bold text-orange-700 uppercase tracking-widest border-b-2 border-orange-500 pb-2 mb-4">Needs Review</h3>
+                    <p id="summary-needs-review" class="text-4xl font-black text-orange-600">0</p>
                 </div>
-                <div class="retro-box p-6 flex flex-col justify-between border-green-600 bg-green-50">
-                    <h3 class="text-sm font-bold text-green-700 uppercase tracking-widest border-b-2 border-green-600 pb-2 mb-4">Quantum Safe Ready</h3>
-                    <p id="quantum-safe" class="text-5xl font-black text-green-600">0</p>
+                <div class="retro-box p-5 flex flex-col justify-between border-green-600 bg-green-50">
+                    <h3 class="text-xs font-bold text-green-700 uppercase tracking-widest border-b-2 border-green-600 pb-2 mb-4">Quantum Safe</h3>
+                    <p id="summary-quantum-safe" class="text-4xl font-black text-green-600">0</p>
+                </div>
+                <div class="retro-box p-5 flex flex-col justify-between border-gray-600 bg-gray-50">
+                    <h3 class="text-xs font-bold text-gray-700 uppercase tracking-widest border-b-2 border-gray-600 pb-2 mb-4">Low Confidence</h3>
+                    <p id="summary-low-confidence" class="text-4xl font-black text-gray-700">0</p>
+                </div>
+                <div class="retro-box p-5 flex flex-col justify-between">
+                    <h3 class="text-xs font-bold text-gray-700 uppercase tracking-widest border-b-2 border-black pb-2 mb-4">Total Findings</h3>
+                    <p id="summary-total-findings" class="text-4xl font-black text-black">0</p>
                 </div>
             </div>
 
+            <div class="mb-5 flex flex-wrap gap-3" id="category-tabs"></div>
+
             <div class="flex-1 flex flex-col lg:flex-row gap-6 pb-6">
-                
-                <div class="w-full lg:w-[20%] retro-box flex flex-col overflow-hidden h-[600px] bg-gray-100">
-                    <div class="p-3 bg-black text-white shrink-0">
-                        <h3 class="text-xs font-bold tracking-widest uppercase">Vulnerabilities</h3>
+
+                <div class="w-full lg:w-[23%] retro-box flex flex-col overflow-hidden h-[640px] bg-gray-100">
+                    <div class="p-3 bg-black text-white shrink-0 flex justify-between items-center gap-2">
+                        <h3 id="finding-list-title" class="text-xs font-bold tracking-widest uppercase">Vulnerabilities</h3>
+                        <span id="finding-list-count" class="text-[10px] bg-white text-black px-2 py-0.5 font-black">0</span>
                     </div>
                     <div id="findings-list" class="flex-1 overflow-y-auto p-3 space-y-3"></div>
                 </div>
 
-                <div class="w-full lg:w-[55%] retro-box flex flex-col overflow-hidden hidden h-[600px] bg-[#282c34]" id="detail-code-view">
+                <div class="w-full lg:w-[52%] retro-box flex flex-col overflow-hidden hidden h-[640px] bg-[#282c34]" id="detail-code-view">
                     <div class="p-3 bg-black text-white flex justify-between items-center shrink-0 border-b-2 border-black">
                         <div class="flex items-center gap-3">
                             <div class="flex gap-1.5">
@@ -286,14 +240,25 @@
                         </div>
                         <span id="detail-location" class="text-[10px] bg-white text-black px-2 py-0.5 font-bold"></span>
                     </div>
+                    <div id="low-confidence-warning" class="hidden bg-yellow-200 text-black border-b-2 border-black px-4 py-2 text-xs font-black uppercase">
+                        Low-confidence evidence: confirm context before treating this as a vulnerability.
+                    </div>
                     <pre class="flex-1 overflow-y-auto overflow-x-hidden p-4 text-[13px] leading-relaxed bg-[#282c34] text-gray-300 code-scroll"><code id="detail-snippet" class="bg-transparent font-mono"></code></pre>
                 </div>
 
-                <div class="w-full lg:w-[25%] retro-box flex flex-col overflow-hidden hidden h-[600px] bg-yellow-50" id="detail-ai-view">
+                <div class="w-full lg:w-[25%] retro-box flex flex-col overflow-hidden hidden h-[640px] bg-yellow-50" id="detail-ai-view">
                     <div class="p-3 bg-black text-white shrink-0">
-                        <h3 class="text-xs font-bold tracking-widest uppercase text-yellow-400">AI Recommendation</h3>
+                        <h3 class="text-xs font-bold tracking-widest uppercase text-yellow-400">Finding Detail & Recommendation</h3>
                     </div>
-                    <div class="p-5 flex-1 overflow-y-auto space-y-6">
+                    <div class="p-5 flex-1 overflow-y-auto space-y-5">
+                        <div>
+                            <h4 class="text-[11px] font-black uppercase tracking-widest border-b-2 border-black pb-1 mb-2">Metadata</h4>
+                            <div id="detail-metadata" class="flex flex-wrap gap-2"></div>
+                        </div>
+                        <div>
+                            <h4 class="text-[11px] font-black uppercase tracking-widest border-b-2 border-black pb-1 mb-2">Risk Factors</h4>
+                            <div id="detail-risk-factors" class="flex flex-wrap gap-2"></div>
+                        </div>
                         <div>
                             <h4 class="text-[11px] font-black uppercase tracking-widest border-b-2 border-black pb-1 mb-2">Action Required</h4>
                             <p id="detail-action" class="text-sm font-bold leading-relaxed"></p>
@@ -314,12 +279,42 @@
     </div>
 
     <script>
-        const BACKEND_API_URL = '/api/scan'; 
+        const BACKEND_API_URL = '/api/scan';
+
+        let allFindings = [];
+        let currentCategory = 'vulnerability';
+
+        const CATEGORY_CONFIG = {
+            vulnerability: {
+                label: 'Vulnerable',
+                title: 'Vulnerabilities',
+                empty: 'No confirmed quantum-vulnerable public-key cryptography found.',
+                className: 'bg-red-600 text-white'
+            },
+            needs_review: {
+                label: 'Needs Review',
+                title: 'Needs Review',
+                empty: 'No findings require manual review.',
+                className: 'bg-orange-400 text-black'
+            },
+            quantum_safe: {
+                label: 'Quantum Safe',
+                title: 'Quantum Safe Findings',
+                empty: 'No quantum-safe crypto usage detected.',
+                className: 'bg-green-600 text-white'
+            },
+            low_confidence: {
+                label: 'Low Confidence',
+                title: 'Low Confidence Findings',
+                empty: 'No low-confidence findings detected.',
+                className: 'bg-gray-700 text-white'
+            }
+        };
 
         async function startScan() {
             const urlInput = document.getElementById('repo-url').value.trim();
             const errorMsg = document.getElementById('error-message');
-            
+
             if (!urlInput) {
                 errorMsg.textContent = 'ERROR: Repository URL is required.';
                 errorMsg.classList.remove('hidden');
@@ -340,15 +335,15 @@
                 const response = await fetch(BACKEND_API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ repo_url: urlInput }) 
+                    body: JSON.stringify({ repo_url: urlInput })
                 });
 
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
                     throw new Error(errorData.detail || `Server returned ${response.status}`);
                 }
+
                 const jsonData = await response.json();
-                
                 document.getElementById('loading-view').classList.add('hidden');
                 renderDashboard(jsonData);
 
@@ -364,65 +359,169 @@
         function renderDashboard(data) {
             document.getElementById('dashboard-view').classList.remove('hidden');
             document.getElementById('target-path').textContent = data.target_path || document.getElementById('repo-url').value;
-            
-            document.getElementById('total-findings').textContent = data.summary?.total_findings ?? 0;
-            document.getElementById('quantum-vulnerable').textContent = data.summary?.quantum_vulnerable ?? 0;
-            document.getElementById('quantum-safe').textContent = data.summary?.quantum_safe ?? 0;
 
-            const listContainer = document.getElementById('findings-list');
-            listContainer.innerHTML = ''; 
+            allFindings = [...(data.findings || [])].sort(compareFindingsByContract);
+            const summary = buildSummary(data.summary || {}, allFindings);
 
-            const findings = [...(data.findings || [])].sort(compareFindingRisk);
-            if (findings.length > 0) {
-                findings.forEach((finding, index) => {
-                    const btn = document.createElement('button');
-                    btn.className = 'finding-btn w-full text-left p-3 border-2 border-black bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:bg-yellow-200 transition-all shrink-0 mb-1';
-                    btn.onclick = () => showDetail(finding, btn);
-                    const riskLevel = finding.risk_assessment?.risk_level || 'unknown';
-                    const riskClass = riskLevel === 'quantum_vulnerable'
-                        ? 'bg-red-600 text-white'
-                        : riskLevel === 'partially_vulnerable'
-                            ? 'bg-orange-400 text-black'
-                            : riskLevel === 'quantum_safe'
-                                ? 'bg-green-600 text-white'
-                                : 'bg-gray-700 text-white';
-                    
-                    btn.innerHTML = `
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="px-2 py-0.5 ${riskClass} text-[10px] font-bold uppercase border border-black">
-                                ${finding.evidence.algorithm || 'Unknown'}
-                            </span>
-                            <span class="text-[10px] font-black uppercase">risk score: ${finding.risk_assessment?.risk_score ?? 'N/A'}</span>
-                        </div>
-                        <p class="finding-path text-xs truncate font-bold break-all">${finding.evidence.file_path}</p>
-                        <p class="text-[10px] font-black uppercase mt-1">${riskLevel}</p>
-                    `;
-                    listContainer.appendChild(btn);
-                    if (index === 0) btn.click();
-                });
-            } else {
-                listContainer.innerHTML = '<p class="text-sm font-bold p-4 text-center">NO DATA FOUND.</p>';
-            }
+            document.getElementById('summary-vulnerability').textContent = summary.category_counts.vulnerability;
+            document.getElementById('summary-needs-review').textContent = summary.category_counts.needs_review;
+            document.getElementById('summary-quantum-safe').textContent = summary.category_counts.quantum_safe;
+            document.getElementById('summary-low-confidence').textContent = summary.category_counts.low_confidence;
+            document.getElementById('summary-total-findings').textContent = summary.total_findings;
+
+            renderTabs(summary.category_counts);
+            setCategory('vulnerability');
         }
 
-        function compareFindingRisk(left, right) {
-            const rank = {
-                quantum_vulnerable: 0,
-                partially_vulnerable: 1,
-                unknown: 2,
-                quantum_safe: 3,
+        function buildSummary(summary, findings) {
+            const categoryCounts = {
+                vulnerability: 0,
+                needs_review: 0,
+                quantum_safe: 0,
+                low_confidence: 0,
+                ...(summary.category_counts || {})
             };
-            return (rank[left.risk_assessment?.risk_level] ?? 4) - (rank[right.risk_assessment?.risk_level] ?? 4);
+
+            // Fallback for older reports that do not have category_counts.
+            if (!summary.category_counts) {
+                findings.forEach(finding => {
+                    categoryCounts[getFindingCategory(finding)] += 1;
+                });
+            }
+
+            return {
+                total_findings: summary.total_findings ?? findings.length,
+                category_counts: categoryCounts
+            };
+        }
+
+        function renderTabs(categoryCounts) {
+            const tabs = document.getElementById('category-tabs');
+            tabs.innerHTML = '';
+
+            Object.entries(CATEGORY_CONFIG).forEach(([category, config]) => {
+                const button = document.createElement('button');
+                button.id = `tab-${category}`;
+                button.className = 'tab-btn';
+                button.onclick = () => setCategory(category);
+                button.innerHTML = `${config.label} <span class="ml-1 px-1 bg-yellow-200 text-black border border-black">${categoryCounts[category] ?? 0}</span>`;
+                tabs.appendChild(button);
+            });
+        }
+
+        function setCategory(category) {
+            currentCategory = category;
+
+            Object.keys(CATEGORY_CONFIG).forEach(key => {
+                document.getElementById(`tab-${key}`)?.classList.toggle('tab-btn-active', key === category);
+            });
+
+            renderFindingList();
+        }
+
+        function renderFindingList() {
+            const listContainer = document.getElementById('findings-list');
+            const filtered = allFindings.filter(finding => getFindingCategory(finding) === currentCategory);
+            const config = CATEGORY_CONFIG[currentCategory];
+
+            document.getElementById('finding-list-title').textContent = config.title;
+            document.getElementById('finding-list-count').textContent = filtered.length;
+            listContainer.innerHTML = '';
+
+            document.getElementById('detail-code-view').classList.add('hidden');
+            document.getElementById('detail-ai-view').classList.add('hidden');
+
+            if (filtered.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="p-4 text-center font-bold text-sm bg-white border-2 border-black">
+                        <p>${config.empty}</p>
+                        <p class="mt-2 text-xs text-gray-600">Check other tabs for safe or low-confidence findings.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach((finding, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'finding-btn w-full text-left p-3 border-2 border-black bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:bg-yellow-200 transition-all shrink-0 mb-1';
+                btn.onclick = () => showDetail(finding, btn);
+
+                const evidence = finding.evidence || {};
+                const risk = finding.risk_assessment || {};
+                const category = getFindingCategory(finding);
+                const categoryClass = CATEGORY_CONFIG[category]?.className || 'bg-gray-700 text-white';
+
+                btn.innerHTML = `
+                    <div class="flex justify-between items-center mb-2 gap-2">
+                        <span class="badge ${categoryClass}">${escapeHtml(evidence.algorithm || 'Unknown')}</span>
+                        <span class="text-[10px] font-black uppercase">score: ${risk.risk_score ?? 'N/A'}</span>
+                    </div>
+                    <div class="flex flex-wrap gap-1 mb-2">
+                        <span class="badge bg-white text-black">${escapeHtml(risk.risk_level || 'unknown')}</span>
+                        <span class="badge bg-yellow-200 text-black">${escapeHtml(risk.confidence || 'unknown')}</span>
+                    </div>
+                    <div class="flex flex-wrap gap-1 mb-2">
+                        <span class="badge bg-gray-200 text-black">${escapeHtml(evidence.evidence_type || 'unknown')}</span>
+                        <span class="badge bg-gray-200 text-black">${escapeHtml(evidence.usage_type || 'unknown')}</span>
+                        <span class="badge bg-gray-200 text-black">${escapeHtml(evidence.library || 'unknown')}</span>
+                    </div>
+                    <p class="finding-path text-xs truncate font-bold break-all">${escapeHtml(evidence.file_path || 'unknown file')}</p>
+                    <p class="muted-on-active text-[10px] font-black uppercase mt-1 text-gray-600">${escapeHtml(category)}</p>
+                `;
+
+                listContainer.appendChild(btn);
+                if (index === 0) btn.click();
+            });
+        }
+
+        function compareFindingsByContract(left, right) {
+            const leftRisk = left.risk_assessment || {};
+            const rightRisk = right.risk_assessment || {};
+            const leftEvidence = left.evidence || {};
+            const rightEvidence = right.evidence || {};
+
+            const priorityDiff = (leftRisk.display_priority ?? 999) - (rightRisk.display_priority ?? 999);
+            if (priorityDiff !== 0) return priorityDiff;
+
+            const scoreDiff = (rightRisk.risk_score ?? -1) - (leftRisk.risk_score ?? -1);
+            if (scoreDiff !== 0) return scoreDiff;
+
+            const pathDiff = String(leftEvidence.file_path || '').localeCompare(String(rightEvidence.file_path || ''));
+            if (pathDiff !== 0) return pathDiff;
+
+            return (leftEvidence.start_line ?? 0) - (rightEvidence.start_line ?? 0);
+        }
+
+        function getFindingCategory(finding) {
+            const risk = finding.risk_assessment || {};
+            const evidence = finding.evidence || {};
+
+            if (risk.finding_category) return risk.finding_category;
+
+            // Backward-compatible fallback for older report schema.
+            if (['import', 'keyword', 'comment_or_string'].includes(evidence.evidence_type)) return 'low_confidence';
+            if (['comment', 'string'].includes(evidence.source_kind)) return 'low_confidence';
+            if (risk.risk_level === 'quantum_safe') return 'quantum_safe';
+            if (risk.risk_level === 'partially_vulnerable' || risk.risk_level === 'unknown') return 'needs_review';
+            if (risk.risk_level === 'quantum_vulnerable') return 'vulnerability';
+            return 'needs_review';
         }
 
         function languageForPath(filePath) {
             if (/\.(js|jsx|ts|tsx)$/.test(filePath)) return 'javascript';
             if (/\.java$/.test(filePath)) return 'java';
             if (/\.(c|cc|cpp|cxx|h|hh|hpp|hxx)$/.test(filePath)) return 'cpp';
+            if (/\.go$/.test(filePath)) return 'go';
+            if (/\.rs$/.test(filePath)) return 'rust';
+            if (/\.rb$/.test(filePath)) return 'ruby';
             return 'python';
         }
 
         function showDetail(finding, clickedBtn) {
+            const evidence = finding.evidence || {};
+            const risk = finding.risk_assessment || {};
+            const category = getFindingCategory(finding);
+
             document.getElementById('detail-code-view').classList.remove('hidden');
             document.getElementById('detail-ai-view').classList.remove('hidden');
 
@@ -433,72 +532,177 @@
             clickedBtn.classList.remove('bg-white', 'shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]');
             clickedBtn.classList.add('list-btn-active');
 
-            document.getElementById('detail-location').textContent = `${finding.evidence.file_path} [${finding.evidence.start_line}-${finding.evidence.end_line}]`;
-            
+            const filePath = evidence.file_path || 'unknown file';
+            const startLine = Number(evidence.start_line || 1);
+            const endLine = evidence.end_line || startLine;
+            document.getElementById('detail-location').textContent = `${filePath} [${startLine}-${endLine}]`;
+
+            const lowConfidenceEvidence = category === 'low_confidence'
+                || ['import', 'keyword', 'comment_or_string'].includes(evidence.evidence_type)
+                || ['comment', 'string'].includes(evidence.source_kind);
+            document.getElementById('low-confidence-warning').classList.toggle('hidden', !lowConfidenceEvidence);
+
+            renderSnippet(evidence, startLine);
+            renderMetadata(finding);
+            renderRiskFactors(risk.risk_factors || []);
+            renderRecommendation(finding);
+        }
+
+        function renderSnippet(evidence, startLine) {
             const snippetElement = document.getElementById('detail-snippet');
-            const rawCode = finding.evidence.snippet;
-            const startLine = finding.evidence.start_line;
+            const rawCode = evidence.snippet;
+
+            if (!rawCode) {
+                snippetElement.className = 'bg-transparent font-mono text-gray-300';
+                snippetElement.textContent = 'No source snippet available for this finding.';
+                return;
+            }
+
+            snippetElement.removeAttribute('data-highlighted');
+            const language = languageForPath(evidence.file_path || '');
+            snippetElement.className = `hljs language-${language} !bg-transparent w-full inline-block`;
+
+            let highlightedHtml;
+            try {
+                highlightedHtml = hljs.highlight(rawCode, { language }).value;
+            } catch (_) {
+                highlightedHtml = escapeHtml(rawCode);
+            }
 
             const vulnerableLines = new Set(
-                finding.evidence.static_matches 
-                    ? finding.evidence.static_matches.map(match => match.line_number)
+                evidence.static_matches
+                    ? evidence.static_matches.map(match => match.line_number)
                     : [startLine]
             );
 
-            if (rawCode) {
-                snippetElement.removeAttribute('data-highlighted');
-                const language = languageForPath(finding.evidence.file_path || '');
-                snippetElement.className = `hljs language-${language} !bg-transparent w-full inline-block`; 
+            const lines = highlightedHtml.split('\n');
+            snippetElement.innerHTML = lines.map((lineHtml, index) => {
+                const currentLineNumber = startLine + index;
+                const isVulnerableLine = vulnerableLines.has(currentLineNumber);
+                const rowClass = isVulnerableLine
+                    ? 'bg-red-900/40 border-l-[4px] border-red-500'
+                    : 'border-l-[4px] border-transparent hover:bg-white/5';
+                const numColor = isVulnerableLine ? 'text-red-400 font-bold' : 'text-gray-500';
 
-                const highlightedHtml = hljs.highlight(rawCode, { language }).value;
-                const lines = highlightedHtml.split('\n');
-                
-                const formattedHtml = lines.map((lineHtml, index) => {
-                    const currentLineNumber = startLine + index;
-                    const isVulnerableLine = vulnerableLines.has(currentLineNumber); 
-                    
-                    const rowClass = isVulnerableLine 
-                        ? 'bg-red-900/40 border-l-[4px] border-red-500' 
-                        : 'border-l-[4px] border-transparent hover:bg-white/5'; 
-                    
-                    const numColor = isVulnerableLine ? 'text-red-400 font-bold' : 'text-gray-500';
-                    
-                    return `<div class="flex px-2 py-[2px] ${rowClass} transition-colors font-mono">
-                                <span class="w-10 text-right pr-4 select-none text-[11px] ${numColor} shrink-0 pt-0.5">${currentLineNumber}</span>
-                                <span class="whitespace-pre-wrap break-words flex-1">${lineHtml || ' '}</span>
-                            </div>`;
-                }).join('');
-                
-                snippetElement.innerHTML = formattedHtml;
-            } else {
-                snippetElement.textContent = 'NO SOURCE CODE AVAILABLE.';
-            }
-            
-            const rec = finding.recommendation;
-            if (rec && rec.recommended_action) {
-                document.getElementById('detail-action').textContent = rec.recommended_action;
-                
-                const candidatesContainer = document.getElementById('detail-candidates');
-                candidatesContainer.innerHTML = '';
-                (rec.candidate_pqc_algorithms || []).forEach(algo => {
-                    const div = document.createElement('div');
-                    div.className = 'px-2 py-1 bg-black text-white text-[10px] font-bold uppercase tracking-wider shadow-[2px_2px_0px_0px_#FFD700] mb-1 mr-1';
-                    div.textContent = algo;
-                    candidatesContainer.appendChild(div);
-                });
+                return `<div class="flex px-2 py-[2px] ${rowClass} transition-colors font-mono">
+                            <span class="w-10 text-right pr-4 select-none text-[11px] ${numColor} shrink-0 pt-0.5">${currentLineNumber}</span>
+                            <span class="whitespace-pre-wrap break-words flex-1">${lineHtml || ' '}</span>
+                        </div>`;
+            }).join('');
+        }
 
-                const stepsContainer = document.getElementById('detail-steps');
-                stepsContainer.innerHTML = '';
-                (rec.developer_steps || []).forEach(step => {
-                    const li = document.createElement('li');
-                    li.textContent = step;
-                    stepsContainer.appendChild(li);
-                });
-            } else {
-                document.getElementById('detail-action').textContent = 'NO AI RECOMMENDATION.';
-                document.getElementById('detail-candidates').innerHTML = '';
-                document.getElementById('detail-steps').innerHTML = '';
+        function renderMetadata(finding) {
+            const evidence = finding.evidence || {};
+            const risk = finding.risk_assessment || {};
+            const category = getFindingCategory(finding);
+            const metadata = [
+                ['Risk', risk.risk_level || 'unknown'],
+                ['Category', category],
+                ['Confidence', risk.confidence || 'unknown'],
+                ['Evidence', evidence.evidence_type || 'unknown'],
+                ['Source', evidence.source_kind || 'unknown'],
+                ['Usage', evidence.usage_type || 'unknown'],
+                ['Library', evidence.library || 'unknown']
+            ];
+
+            const container = document.getElementById('detail-metadata');
+            container.innerHTML = '';
+            metadata.forEach(([label, value]) => {
+                const div = document.createElement('div');
+                div.className = 'badge bg-white text-black';
+                div.textContent = `${label}: ${value}`;
+                container.appendChild(div);
+            });
+        }
+
+        function renderRiskFactors(riskFactors) {
+            const container = document.getElementById('detail-risk-factors');
+            container.innerHTML = '';
+
+            if (!riskFactors.length) {
+                const div = document.createElement('div');
+                div.className = 'text-sm font-bold';
+                div.textContent = 'No risk factors provided.';
+                container.appendChild(div);
+                return;
             }
+
+            riskFactors.forEach(factor => {
+                const div = document.createElement('div');
+                div.className = 'px-2 py-1 bg-white border-2 border-black text-[10px] font-bold uppercase';
+                div.textContent = factor;
+                container.appendChild(div);
+            });
+        }
+
+        function renderRecommendation(finding) {
+            const rec = finding.recommendation || {};
+            const category = getFindingCategory(finding);
+
+            const action = rec.recommended_action
+                || rec.action_required
+                || fallbackAction(category);
+            document.getElementById('detail-action').textContent = action;
+
+            const candidates = rec.candidate_pqc_algorithms
+                || rec.candidate_algorithms
+                || fallbackCandidates(category);
+            const candidatesContainer = document.getElementById('detail-candidates');
+            candidatesContainer.innerHTML = '';
+            candidates.forEach(algo => {
+                const div = document.createElement('div');
+                div.className = 'px-2 py-1 bg-black text-white text-[10px] font-bold uppercase tracking-wider shadow-[2px_2px_0px_0px_#FFD700] mb-1 mr-1';
+                div.textContent = algo;
+                candidatesContainer.appendChild(div);
+            });
+
+            const steps = rec.developer_steps
+                || rec.migration_steps
+                || fallbackSteps(category);
+            const stepsContainer = document.getElementById('detail-steps');
+            stepsContainer.innerHTML = '';
+            steps.forEach(step => {
+                const li = document.createElement('li');
+                li.textContent = step;
+                stepsContainer.appendChild(li);
+            });
+        }
+
+        function fallbackAction(category) {
+            if (category === 'vulnerability') return 'Plan PQC migration after confirming the cryptographic context.';
+            if (category === 'needs_review') return 'Manually confirm the cryptographic usage before selecting a migration path.';
+            if (category === 'quantum_safe') return 'No PQC migration required for this finding. Treat it as crypto coverage signal.';
+            return 'Low-confidence evidence. Confirm whether this is real crypto usage before taking action.';
+        }
+
+        function fallbackCandidates(category) {
+            if (category === 'vulnerability') return ['Context-dependent PQC algorithm selection'];
+            if (category === 'quantum_safe') return ['No PQC migration required'];
+            return ['Confirm usage before migration planning'];
+        }
+
+        function fallbackSteps(category) {
+            if (category === 'quantum_safe') {
+                return [
+                    'Keep this finding separated from vulnerabilities.',
+                    'Verify that this usage is symmetric crypto, hashing, MAC, or another quantum-safe primitive.',
+                    'No RSA/ECC/DH-style PQC migration is required for this finding.'
+                ];
+            }
+            return [
+                'Confirm the algorithm and usage type.',
+                'Check protocol and library constraints.',
+                'Select the PQC replacement from the confirmed usage category.'
+            ];
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
         }
     </script>
 </body>
