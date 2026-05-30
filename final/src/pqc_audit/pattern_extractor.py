@@ -159,14 +159,55 @@ class PatternExtractor:
             ]
         ).lower()
 
-        if "sslcontext" in text or "create_default_context" in text:
+        if (
+            "sslcontext" in text
+            or "create_default_context" in text
+            or "httpsurlconnection" in text
+            or "sslsocketfactory" in text
+            or "sslparameters" in text
+            or "tlsv1." in text
+        ):
             return "tls_configuration"
-        if "generate_private_key" in text:
+        if (
+            "keystore" in text
+            or "pemparser" in text
+            or "jcapemkeyconverter" in text
+            or "certificate" in text
+            or "x509" in text
+        ):
+            return "certificate_handling"
+        if (
+            "generate_private_key" in text
+            or "generatekeypair" in text
+            or "keypairgenerator" in text
+            or "generate_key" in text
+            or "rsa_generate_key" in text
+            or "dh_generate_parameters" in text
+            or "evp_pkey_keygen" in text
+            or "keygen" in text
+        ):
             return "key_generation"
-        if "exchange" in text or "ecdh" in text:
+        if (
+            "exchange" in text
+            or "ecdh" in text
+            or "keyagreement" in text
+            or "dh_compute_key" in text
+            or "diffiehellman" in text
+            or "evp_pkey_derive" in text
+            or "derive" in text
+        ):
             return "key_exchange"
-        if "sign" in text or "verify" in text:
+        if (
+            "sign" in text
+            or "verify" in text
+            or "signature" in text
+            or "digestsign" in text
+            or "digestverify" in text
+            or "signer" in text
+        ):
             return "signature"
+        if "cipher" in text or "encrypt" in text or "decrypt" in text:
+            return "encryption"
         return "unknown"
 
     def _match_sort_key(self, match: StaticMatch) -> tuple[int, str, str]:

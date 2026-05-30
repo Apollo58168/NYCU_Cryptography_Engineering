@@ -20,6 +20,23 @@ IGNORED_DIRECTORIES: tuple[str, ...] = (
     "build",
 )
 
+SUPPORTED_SOURCE_EXTENSIONS: tuple[str, ...] = (
+    ".py",
+    ".js",
+    ".jsx",
+    ".ts",
+    ".tsx",
+    ".java",
+    ".c",
+    ".cc",
+    ".cpp",
+    ".cxx",
+    ".h",
+    ".hh",
+    ".hpp",
+    ".hxx",
+)
+
 
 class RepositoryError(ValueError):
     """Raised when the target repository path is invalid."""
@@ -42,7 +59,7 @@ def scan_repository(target_path: Path) -> RepositoryScanResult:
         dirnames[:] = sorted(name for name in dirnames if name not in IGNORED_DIRECTORIES)
 
         for filename in sorted(filenames):
-            if not filename.endswith(".py"):
+            if Path(filename).suffix not in SUPPORTED_SOURCE_EXTENSIONS:
                 continue
 
             file_path = Path(current_root) / filename

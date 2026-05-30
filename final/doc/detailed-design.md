@@ -145,9 +145,9 @@ RSA、ECC、Diffie-Hellman 等演算法可能出現在不同檔案、不同 libr
 - GitHub 專案
 - 本地端專案資料夾
 - 開源專案
-- 使用者自己的 Python 專案
+- 使用者自己的本地端專案
 
-在 MVP 版本中，系統主要以 **本地端 Python 專案** 為掃描目標。工具會讀取專案目錄中的 `.py` 檔案，並略過不相關的資料夾，例如 `.git`、`.venv`、`__pycache__`、`build`、`dist` 等。
+在目前 MVP 版本中，系統以 **本地端多語言專案** 為掃描目標。工具會讀取專案目錄中的 Python、JavaScript/TypeScript、Java、C/C++ 原始碼檔案，並略過不相關的資料夾，例如 `.git`、`.venv`、`__pycache__`、`build`、`dist` 等。
 
 ### 7.2 Static Code Scanner
 
@@ -313,7 +313,7 @@ Markdown 報告適合人類閱讀，JSON 報告適合後續工具處理或整合
 
 MVP 預計支援：
 
-- 掃描本地端 Python 專案
+- 掃描本地端 Python、JavaScript/TypeScript、Java、C/C++ 專案
 - 偵測 Python 中常見 cryptographic API
 - 萃取相關程式碼片段
 - 使用 Gemini API 進行語意分析
@@ -959,4 +959,4 @@ pqc-audit --target ./example_project --output ./reports --format both
 - 降低人工稽核成本
 - 為未來的 post-quantum migration 做準備
 
-在 MVP 版本中，系統會優先支援 Python 專案，並使用 Gemini API 進行 AI 語意分析。未來則可以擴充到更多語言、更多 library、CI/CD 整合與自動安全重構。
+在目前 MVP 版本中，系統支援 Python、JavaScript/TypeScript、Java、C/C++ 專案，並使用 Gemini API 進行 AI 語意分析。未來則可以擴充到更多語言、更多 library、CI/CD 整合與自動安全重構。
