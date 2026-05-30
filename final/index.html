@@ -19,7 +19,7 @@
             font-family: 'Courier New', Courier, monospace; 
         }
 
-        /* 訂製復古卷軸 (只保留 Y 軸需要時出現) */
+        /* 訂製復古卷軸 */
         ::-webkit-scrollbar { width: 12px; height: 12px; }
         ::-webkit-scrollbar-track { background: #e2e8f0; border-left: 2px solid #000; }
         ::-webkit-scrollbar-thumb { background: #000; border: 2px solid #e2e8f0; }
@@ -79,6 +79,130 @@
         .list-btn-active p.finding-path {
             color: #e5e7eb !important; 
         }
+
+        /* =========================================
+           🦖 滿版自適應小恐龍跑道（真實重力拋物線版）
+           ========================================= */
+        .dino-scene {
+            position: relative;
+            height: 90px; 
+            overflow: hidden; 
+            margin-bottom: -4px;
+        }
+
+        /* 復古點陣地平線 */
+        .dino-ground {
+            position: absolute;
+            bottom: 12px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-image: linear-gradient(to right, #666 70%, transparent 70%);
+            background-size: 6px 100%;
+        }
+
+        /* 雲朵：滿滿的雲，交錯出現 */
+        .dino-cloud {
+            position: absolute;
+            width: 46px;
+            height: 14px;
+            background: url('https://raw.githubusercontent.com/wayou/t-rex-runner/gh-pages/assets/default_100_percent/100-offline-sprite.png') no-repeat;
+            background-position: -86px -2px;
+            opacity: 1.0;
+        }
+        .cloud-1 { top: 12px; animation: cloud-move 12s linear infinite; animation-delay: 0s; }
+        .cloud-2 { top: 28px; animation: cloud-move 18s linear infinite; animation-delay: -5s; }
+        .cloud-3 { top: 18px; animation: cloud-move 15s linear infinite; animation-delay: -10s; }
+
+        /* 仙人掌共同基礎 */
+        .dino-cactus {
+            position: absolute;
+            bottom: 12px;
+            background: url('https://raw.githubusercontent.com/wayou/t-rex-runner/gh-pages/assets/default_100_percent/100-offline-sprite.png') no-repeat;
+            /* 仙人掌統一 2.5 秒週期，由 100% 走到 -10% */
+            animation: cactus-move 2.5s linear infinite;
+        }
+
+        /* 仙人掌 1：小仙人掌 */
+        .dino-cactus.cactus-1 {
+            width: 17px;
+            height: 35px;
+            background-position: -228px -2px;
+            animation-delay: 0s;
+        }
+
+        /* 仙人掌 2：中仙人掌 (完美錯開) */
+        .dino-cactus.cactus-2 {
+            width: 25px;
+            height: 50px;
+            background-position: -332px -2px;
+            transform: scale(0.85);
+            transform-origin: bottom left;
+            animation-delay: -1.25s; /* 精確的 -50% 週期 */
+            z-index: 5;
+        }
+
+        /* 小恐龍 (主畫面版) */
+        .chrome-dino {
+            position: absolute;
+            bottom: 12px;
+            left: 15%; 
+            width: 44px;
+            height: 47px;
+            background: url('https://raw.githubusercontent.com/wayou/t-rex-runner/gh-pages/assets/default_100_percent/100-offline-sprite.png') no-repeat;
+            background-position: -848px 0;
+            transform: scale(0.75);
+            transform-origin: bottom left;
+            z-index: 10;
+            animation: 
+                dino-run 0.2s steps(2) infinite,
+                dino-jump-math 2.5s linear infinite; 
+        }
+
+        /* 小恐龍 (讀取畫面版) */
+        .mini-dino-loading {
+            width: 44px;
+            height: 47px;
+            background: url('https://raw.githubusercontent.com/wayou/t-rex-runner/gh-pages/assets/default_100_percent/100-offline-sprite.png') no-repeat;
+            background-position: -848px 0;
+            animation: dino-run 0.2s steps(2) infinite;
+            transform: scale(1.2);
+            margin-bottom: 1.5rem;
+        }
+
+        /* === 動畫時間軸設定 === */
+        @keyframes cloud-move {
+            0% { left: 100%; }
+            100% { left: -60px; }
+        }
+
+        @keyframes cactus-move {
+            0% { left: 100%; }
+            100% { left: -10%; } 
+        }
+
+        @keyframes dino-run {
+            0% { background-position: -936px 0; }
+            100% { background-position: -1024px 0; }
+        }
+
+        /* 真實物理重力跳躍曲線 */
+        @keyframes dino-jump-math {
+            /* 第一段跑：抵達起跳點前 */
+            0%, 20% { bottom: 12px; animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1); } /* 準備減速上升 */
+            
+            /* 第一跳：精準在 25.5% 閃過仙人掌 2 */
+            25.5% { bottom: 55px; animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0); } /* 到達頂點，準備加速落下 */
+            
+            /* 落地繼續跑 */
+            31%, 70% { bottom: 12px; animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1); } /* 準備減速上升 */
+            
+            /* 第二跳：精準在 75.5% 閃過仙人掌 1 */
+            75.5% { bottom: 55px; animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0); } /* 到達頂點，準備加速落下 */
+            
+            /* 落地完成迴圈 */
+            81%, 100% { bottom: 12px; }
+        }
     </style>
 </head>
 <body class="text-black min-h-screen relative overflow-x-hidden selection:bg-yellow-400 selection:text-black p-6">
@@ -99,7 +223,7 @@
 
         <div id="loading-view" class="hidden flex-1 flex flex-col items-center justify-center">
             <div class="retro-box p-10 flex flex-col items-center border-4 border-dashed">
-                <div class="w-12 h-12 border-[4px] border-gray-200 border-t-black rounded-full animate-spin mb-6"></div>
+                <div class="mini-dino-loading"></div>
                 <h2 class="text-xl font-bold tracking-widest uppercase animate-pulse-fast">Analyzing Codebase...</h2>
                 <p class="text-sm font-bold text-gray-500 mt-2 uppercase">Please wait</p>
             </div>
@@ -107,12 +231,23 @@
 
         <div id="dashboard-view" class="hidden flex-1 flex flex-col">
             
-            <header class="mb-8 flex justify-between items-end border-b-4 border-black pb-4">
-                <div>
+            <header class="mb-8 flex justify-between items-end border-b-4 border-black pb-4 gap-4">
+                <div class="shrink-0">
                     <h1 class="text-3xl font-black tracking-tighter uppercase mb-2">Audit Dashboard</h1>
                     <p class="text-sm font-bold text-gray-600 uppercase">Target: <span id="target-path" class="text-black bg-yellow-200 px-2 py-0.5 border border-black"></span></p>
                 </div>
-                <button onclick="location.reload()" class="retro-btn px-6 py-2 text-sm">NEW SCAN</button>
+
+                <div class="dino-scene flex-1 hidden sm:block"> 
+                    <div class="dino-cloud cloud-1"></div>
+                    <div class="dino-cloud cloud-2"></div>
+                    <div class="dino-cloud cloud-3"></div>
+                    <div class="dino-ground"></div>
+                    <div class="dino-cactus cactus-1"></div> 
+                    <div class="dino-cactus cactus-2"></div> 
+                    <div class="chrome-dino"></div>
+                </div>
+
+                <button onclick="location.reload()" class="retro-btn px-6 py-2 text-sm shrink-0">NEW SCAN</button>
             </header>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -322,7 +457,6 @@
                     const currentLineNumber = startLine + index;
                     const isVulnerableLine = vulnerableLines.has(currentLineNumber); 
                     
-                    // 💡 針對深色主題調整：有問題的行數變成暗紅高亮，一般的行數保持透明，滑鼠懸浮有微弱的反饋
                     const rowClass = isVulnerableLine 
                         ? 'bg-red-900/40 border-l-[4px] border-red-500' 
                         : 'border-l-[4px] border-transparent hover:bg-white/5'; 
