@@ -12,11 +12,338 @@ from pqc_audit.models import SourceFile, StaticMatch
 class _Rule:
     rule_id: str
     pattern: re.Pattern[str]
-    algorithm_hint: str
+    algorithm_hint: str | None
     library_hint: str | None
 
 
 _TEXT_RULES: tuple[_Rule, ...] = (
+    # JavaScript / TypeScript Node.js crypto and WebCrypto APIs.
+    _Rule(
+        "js_crypto_generate_keypair_rsa",
+        re.compile(r"\b(?:crypto\.)?generateKeyPair(?:Sync)?\s*\(\s*['\"]rsa['\"]", re.IGNORECASE),
+        "RSA",
+        "node:crypto",
+    ),
+    _Rule(
+        "js_crypto_generate_keypair_ec",
+        re.compile(r"\b(?:crypto\.)?generateKeyPair(?:Sync)?\s*\(\s*['\"]ec['\"]", re.IGNORECASE),
+        "ECC",
+        "node:crypto",
+    ),
+    _Rule(
+        "js_crypto_create_ecdh",
+        re.compile(r"\b(?:crypto\.)?createECDH\s*\(", re.IGNORECASE),
+        "ECDH",
+        "node:crypto",
+    ),
+    _Rule(
+        "js_crypto_diffie_hellman",
+        re.compile(r"\b(?:crypto\.)?diffieHellman\s*\(", re.IGNORECASE),
+        "DH",
+        "node:crypto",
+    ),
+    _Rule(
+        "js_crypto_create_sign_rsa",
+        re.compile(r"\b(?:crypto\.)?createSign\s*\(\s*['\"][^'\"]*RSA[^'\"]*['\"]", re.IGNORECASE),
+        "RSA",
+        "node:crypto",
+    ),
+    _Rule(
+        "js_webcrypto_rsa",
+        re.compile(r"\b(?:RSA-PSS|RSASSA-PKCS1-v1_5|RSA-OAEP)\b", re.IGNORECASE),
+        "RSA",
+        "WebCrypto",
+    ),
+    _Rule(
+        "js_webcrypto_ecdsa",
+        re.compile(r"\bECDSA\b", re.IGNORECASE),
+        "ECDSA",
+        "WebCrypto",
+    ),
+    _Rule(
+        "js_webcrypto_ecdh",
+        re.compile(r"\bECDH\b", re.IGNORECASE),
+        "ECDH",
+        "WebCrypto",
+    ),
+    _Rule(
+        "js_jose_generate_keypair_rsa",
+        re.compile(r"\bgenerateKeyPair\s*\(\s*['\"](?:RS|PS)\d{3}['\"]", re.IGNORECASE),
+        "RSA",
+        "jose",
+    ),
+    _Rule(
+        "js_jose_generate_keypair_ecdsa",
+        re.compile(r"\bgenerateKeyPair\s*\(\s*['\"]ES\d{3}['\"]", re.IGNORECASE),
+        "ECDSA",
+        "jose",
+    ),
+    _Rule(
+        "js_jose_ecdh_algorithm",
+        re.compile(r"\bECDH-ES\b", re.IGNORECASE),
+        "ECDH",
+        "jose",
+    ),
+    _Rule(
+        "js_jose_import_rsa_key",
+        re.compile(r"\bimport(?:PKCS8|SPKI|JWK)\s*\([^;\n]*['\"](?:RS|PS)\d{3}['\"]", re.IGNORECASE),
+        "RSA",
+        "jose",
+    ),
+    _Rule(
+        "js_jose_import_ecdsa_key",
+        re.compile(r"\bimport(?:PKCS8|SPKI|JWK)\s*\([^;\n]*['\"]ES\d{3}['\"]", re.IGNORECASE),
+        "ECDSA",
+        "jose",
+    ),
+    _Rule(
+        "js_jsonwebtoken_rsa_algorithm",
+        re.compile(r"\balgorithms?\s*:\s*(?:\[[^\]]*)?['\"](?:RS|PS)\d{3}['\"]", re.IGNORECASE),
+        "RSA",
+        "jsonwebtoken",
+    ),
+    _Rule(
+        "js_jsonwebtoken_ecdsa_algorithm",
+        re.compile(r"\balgorithms?\s*:\s*(?:\[[^\]]*)?['\"]ES\d{3}['\"]", re.IGNORECASE),
+        "ECDSA",
+        "jsonwebtoken",
+    ),
+    _Rule(
+        "js_node_forge_rsa_generate_keypair",
+        re.compile(r"\bforge\.pki\.rsa\.generateKeyPair\s*\(", re.IGNORECASE),
+        "RSA",
+        "node-forge",
+    ),
+    _Rule(
+        "js_node_forge_rsa_key_from_pem",
+        re.compile(r"\bforge\.pki\.(?:publicKeyFromPem|privateKeyFromPem|rsa\.setPublicKey|rsa\.setPrivateKey)\s*\(", re.IGNORECASE),
+        "RSA",
+        "node-forge",
+    ),
+    # Java JCA / JCE APIs.
+    _Rule(
+        "java_keypairgenerator_rsa",
+        re.compile(r"\bKeyPairGenerator\.getInstance\s*\(\s*['\"]RSA['\"](?:\s*,[^)]*)?\)"),
+        "RSA",
+        "Java JCA",
+    ),
+    _Rule(
+        "java_keypairgenerator_ec",
+        re.compile(r"\bKeyPairGenerator\.getInstance\s*\(\s*['\"]EC['\"](?:\s*,[^)]*)?\)"),
+        "ECC",
+        "Java JCA",
+    ),
+    _Rule(
+        "java_keypairgenerator_dh",
+        re.compile(r"\bKeyPairGenerator\.getInstance\s*\(\s*['\"]DH['\"](?:\s*,[^)]*)?\)"),
+        "DH",
+        "Java JCA",
+    ),
+    _Rule(
+        "java_cipher_rsa",
+        re.compile(r"\bCipher\.getInstance\s*\(\s*['\"][^'\"]*RSA[^'\"]*['\"]\s*\)"),
+        "RSA",
+        "Java JCE",
+    ),
+    _Rule(
+        "java_signature_rsa",
+        re.compile(r"\bSignature\.getInstance\s*\(\s*['\"][^'\"]*RSA[^'\"]*['\"]\s*\)"),
+        "RSA",
+        "Java JCA",
+    ),
+    _Rule(
+        "java_signature_ecdsa",
+        re.compile(r"\bSignature\.getInstance\s*\(\s*['\"][^'\"]*ECDSA[^'\"]*['\"]\s*\)"),
+        "ECDSA",
+        "Java JCA",
+    ),
+    _Rule(
+        "java_keyagreement_ecdh",
+        re.compile(r"\bKeyAgreement\.getInstance\s*\(\s*['\"]ECDH['\"](?:\s*,[^)]*)?\)"),
+        "ECDH",
+        "Java JCA",
+    ),
+    _Rule(
+        "java_keyagreement_dh",
+        re.compile(r"\bKeyAgreement\.getInstance\s*\(\s*['\"]DH['\"](?:\s*,[^)]*)?\)"),
+        "DH",
+        "Java JCA",
+    ),
+    _Rule(
+        "java_keystore_getinstance",
+        re.compile(r"\bKeyStore\.getInstance\s*\(\s*['\"](?:JKS|PKCS12|PKCS11|BKS)['\"]", re.IGNORECASE),
+        None,
+        "Java KeyStore",
+    ),
+    _Rule(
+        "java_sslcontext_getinstance",
+        re.compile(r"\bSSLContext\.getInstance\s*\(\s*['\"]TLS(?:v1\.[23])?['\"]", re.IGNORECASE),
+        None,
+        "Java JSSE",
+    ),
+    _Rule(
+        "java_https_tls_config",
+        re.compile(r"\b(?:HttpsURLConnection|SSLSocketFactory|SSLParameters)\b"),
+        None,
+        "Java JSSE",
+    ),
+    _Rule(
+        "java_bouncycastle_provider",
+        re.compile(r"\b(?:BouncyCastleProvider|Security\.addProvider\s*\([^)]*BC|setProvider\s*\(\s*['\"]BC['\"]\s*\))"),
+        None,
+        "BouncyCastle",
+    ),
+    _Rule(
+        "java_bouncycastle_rsa_keypair_generator",
+        re.compile(r"\bRSAKeyPairGenerator\b"),
+        "RSA",
+        "BouncyCastle",
+    ),
+    _Rule(
+        "java_bouncycastle_ec_keypair_generator",
+        re.compile(r"\bECKeyPairGenerator\b"),
+        "ECC",
+        "BouncyCastle",
+    ),
+    _Rule(
+        "java_bouncycastle_ecdsa_signer",
+        re.compile(r"\bECDSASigner\b"),
+        "ECDSA",
+        "BouncyCastle",
+    ),
+    _Rule(
+        "java_bouncycastle_ecdh_agreement",
+        re.compile(r"\bECDHBasicAgreement\b"),
+        "ECDH",
+        "BouncyCastle",
+    ),
+    _Rule(
+        "java_bouncycastle_pem_parser",
+        re.compile(r"\b(?:PEMParser|JcaPEMKeyConverter)\b"),
+        None,
+        "BouncyCastle",
+    ),
+    # C / C++ OpenSSL APIs.
+    _Rule(
+        "openssl_rsa_generate_key_ex",
+        re.compile(r"\bRSA_generate_key_ex\s*\("),
+        "RSA",
+        "OpenSSL",
+    ),
+    _Rule(
+        "openssl_evp_pkey_rsa",
+        re.compile(r"\bEVP_PKEY_(?:RSA|RSA_PSS)\b"),
+        "RSA",
+        "OpenSSL",
+    ),
+    _Rule(
+        "openssl_ec_key_new_by_curve_name",
+        re.compile(r"\bEC_KEY_new_by_curve_name\s*\("),
+        "ECC",
+        "OpenSSL",
+    ),
+    _Rule(
+        "openssl_ecdsa_sign",
+        re.compile(r"\bECDSA_sign\s*\("),
+        "ECDSA",
+        "OpenSSL",
+    ),
+    _Rule(
+        "openssl_ecdh_compute_key",
+        re.compile(r"\bECDH_compute_key\s*\("),
+        "ECDH",
+        "OpenSSL",
+    ),
+    _Rule(
+        "openssl_dh_generate_parameters_ex",
+        re.compile(r"\bDH_generate_parameters_ex\s*\("),
+        "DH",
+        "OpenSSL",
+    ),
+    _Rule(
+        "openssl_dh_compute_key",
+        re.compile(r"\bDH_compute_key\s*\("),
+        "DH",
+        "OpenSSL",
+    ),
+    _Rule(
+        "openssl_evp_pkey_ctx_new_id_rsa",
+        re.compile(r"\bEVP_PKEY_CTX_new_id\s*\(\s*EVP_PKEY_(?:RSA|RSA_PSS)\b"),
+        "RSA",
+        "OpenSSL",
+    ),
+    _Rule(
+        "openssl_evp_pkey_ctx_new_id_ec",
+        re.compile(r"\bEVP_PKEY_CTX_new_id\s*\(\s*EVP_PKEY_EC\b"),
+        "ECC",
+        "OpenSSL",
+    ),
+    _Rule(
+        "openssl_evp_pkey_ctx_new_id_dh",
+        re.compile(r"\bEVP_PKEY_CTX_new_id\s*\(\s*EVP_PKEY_DH\b"),
+        "DH",
+        "OpenSSL",
+    ),
+    _Rule(
+        "openssl_evp_pkey_keygen",
+        re.compile(r"\bEVP_PKEY_keygen(?:_init)?\s*\("),
+        None,
+        "OpenSSL",
+    ),
+    _Rule(
+        "openssl_evp_rsa_keygen_bits",
+        re.compile(r"\bEVP_PKEY_CTX_set_rsa_keygen_bits\s*\("),
+        "RSA",
+        "OpenSSL",
+    ),
+    _Rule(
+        "openssl_evp_digest_sign",
+        re.compile(r"\bEVP_DigestSign(?:Init|Update|Final)?\s*\("),
+        None,
+        "OpenSSL",
+    ),
+    _Rule(
+        "openssl_evp_digest_verify",
+        re.compile(r"\bEVP_DigestVerify(?:Init|Update|Final)?\s*\("),
+        None,
+        "OpenSSL",
+    ),
+    _Rule(
+        "openssl_evp_pkey_derive",
+        re.compile(r"\bEVP_PKEY_derive(?:_init)?\s*\("),
+        None,
+        "OpenSSL",
+    ),
+    _Rule(
+        "openssl_evp_pkey_encrypt",
+        re.compile(r"\bEVP_PKEY_encrypt(?:_init)?\s*\("),
+        None,
+        "OpenSSL",
+    ),
+    _Rule(
+        "openssl_evp_pkey_decrypt",
+        re.compile(r"\bEVP_PKEY_decrypt(?:_init)?\s*\("),
+        None,
+        "OpenSSL",
+    ),
+    _Rule(
+        "openssl_evp_set_rsa_key",
+        re.compile(r"\bEVP_PKEY_(?:assign_RSA|set1_RSA)\s*\("),
+        "RSA",
+        "OpenSSL",
+    ),
+    _Rule(
+        "openssl_pem_read_rsa_key",
+        re.compile(r"\bPEM_read(?:_bio)?_RSA(?:PrivateKey|PUBKEY|PublicKey)\s*\("),
+        "RSA",
+        "OpenSSL",
+    ),
+    _Rule(
+        "openssl_der_read_rsa_key",
+        re.compile(r"\bd2i_RSA(?:PrivateKey|PUBKEY|PublicKey)\s*\("),
+        "RSA",
+        "OpenSSL",
+    ),
     _Rule(
         "pycryptodome_crypto_rsa",
         re.compile(r"\bCrypto\.PublicKey\.RSA\b"),
@@ -58,13 +385,14 @@ class StaticScanner:
 
         for source_file in source_files:
             file_matches: list[StaticMatch] = []
-            try:
-                tree = ast.parse(source_file.content, filename=source_file.relative_path)
-            except SyntaxError:
-                tree = None
+            if source_file.relative_path.endswith(".py"):
+                try:
+                    tree = ast.parse(source_file.content, filename=source_file.relative_path)
+                except SyntaxError:
+                    tree = None
 
-            if tree is not None:
-                file_matches.extend(self._scan_ast(source_file, tree))
+                if tree is not None:
+                    file_matches.extend(self._scan_ast(source_file, tree))
 
             file_matches.extend(self._scan_text(source_file))
             matches.extend(self._dedupe(file_matches))

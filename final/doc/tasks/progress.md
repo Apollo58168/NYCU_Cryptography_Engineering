@@ -21,8 +21,14 @@
 - [x] 建立 `src/pqc_audit/` package
 - [x] 建立共用資料模型
 - [x] 建立 runtime config 與 Gemini API key 驗證
-- [x] 支援本地 Python 專案載入
+- [x] 支援本地多語言專案載入
 - [x] 支援 Python cryptographic static scanning
+- [x] 支援 JavaScript/TypeScript cryptographic static scanning
+- [x] 支援 JS/TS `jose`、`jsonwebtoken`、`node-forge` static scanning
+- [x] 支援 Java cryptographic static scanning
+- [x] 支援 Java KeyStore、TLS config、BouncyCastle static scanning
+- [x] 支援 C/C++ OpenSSL cryptographic static scanning
+- [x] 支援 C/C++ OpenSSL EVP API static scanning
 - [x] 支援 `StaticMatch` 到 `CryptoEvidence` 萃取
 - [x] 支援 Gemini analyzer 並以 mock 測試 API 邊界
 - [x] 支援 `skip_ai` static fallback
@@ -45,6 +51,5 @@
 
 ## Next Action
 
-- 可進行人工 review 或使用 `pqc-audit --target <python_project> --output <report_dir> --format both --skip-ai` 掃描目標專案。
+- 可進行人工 review 或使用 `pqc-audit --target <project> --output <report_dir> --format both --skip-ai` 掃描目標專案。
 - 若要使用 Gemini 模式，需設定 `GEMINI_API_KEY` 並移除 `--skip-ai`。
-

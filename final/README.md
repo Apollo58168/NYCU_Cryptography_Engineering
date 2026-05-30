@@ -1,10 +1,10 @@
 # AI 輔助密碼學稽核與 PQC 遷移建議工具
 
-這是一個 Python-only MVP 工具，用來掃描本地 Python 專案中的傳統公鑰密碼學使用情況，找出可能受到量子運算威脅的 RSA、ECC、ECDSA、ECDH、DH 等使用，並產生後量子密碼學（PQC）遷移建議。
+這是一個多語言 MVP 工具，用來掃描本地專案中的傳統公鑰密碼學使用情況，找出可能受到量子運算威脅的 RSA、ECC、ECDSA、ECDH、DH 等使用，並產生後量子密碼學（PQC）遷移建議。
 
 工具流程：
 
-1. 掃描 Python 原始碼
+1. 掃描支援語言的原始碼
 2. 偵測 cryptographic API 與演算法關鍵字
 3. 萃取相關程式碼片段
 4. 使用 Gemini API 做語意分析，或使用 `--skip-ai` 跳過 AI
@@ -45,6 +45,17 @@ uv run pqc-audit --target . --output ./reports --format both --skip-ai
 ./reports/security-report.md
 ./reports/security-report.json
 ```
+
+## 支援語言
+
+目前支援 rule-based static scanning：
+
+| 語言 | 副檔名 | 主要偵測目標 |
+| --- | --- | --- |
+| Python | `.py` | `cryptography`、`ssl`、PyCryptodome、RSA/ECC/ECDH/DH 關鍵字 |
+| JavaScript / TypeScript | `.js`、`.jsx`、`.ts`、`.tsx` | Node.js `crypto`、WebCrypto、`jose`、`jsonwebtoken`、`node-forge`、RSA/ECDSA/ECDH/DH pattern |
+| Java | `.java` | JCA/JCE、KeyStore、JSSE TLS config、BouncyCastle：`KeyPairGenerator`、`Cipher`、`Signature`、`KeyAgreement`、`SSLContext` |
+| C / C++ | `.c`、`.cc`、`.cpp`、`.cxx`、`.h`、`.hh`、`.hpp`、`.hxx` | OpenSSL classic APIs 與 EVP APIs：`RSA_generate_key_ex`、`EVP_PKEY_*`、`EVP_DigestSign*`、`EVP_DigestVerify*`、`EVP_PKEY_derive/encrypt/decrypt`、`EC_KEY_*`、`ECDSA_*`、`ECDH_*`、`DH_*` |
 
 ## 使用 Gemini API
 
@@ -93,19 +104,19 @@ uv run pqc-audit --target . --output ./reports --format both
 
 如果同時存在 shell environment 和 `.env`，shell environment 的 `GEMINI_API_KEY` 會優先使用。
 
-## 掃描其他 Python 專案
+## 掃描其他專案
 
-將 `--target` 指向要掃描的 Python 專案資料夾：
+將 `--target` 指向要掃描的專案資料夾：
 
 ```bash
-uv run pqc-audit --target /path/to/python_project --output ./reports --format both --skip-ai
+uv run pqc-audit --target /path/to/project --output ./reports --format both --skip-ai
 ```
 
 ## CLI 參數
 
 | 參數 | 必填 | 說明 |
 | --- | --- | --- |
-| `--target` | 是 | 要掃描的 Python 專案資料夾 |
+| `--target` | 是 | 要掃描的專案資料夾 |
 | `--output` | 是 | 報告輸出資料夾 |
 | `--format` | 否 | `markdown`、`json` 或 `both`，預設為 `both` |
 | `--max-snippet-lines` | 否 | 每個 evidence snippet 的最大行數，預設為 `40` |
@@ -139,7 +150,8 @@ security-report.json
 
 ## 注意事項
 
-- MVP 目前只支援 Python source files。
+- MVP 目前支援 Python、JavaScript/TypeScript、Java、C/C++ source files。
+- JavaScript/TypeScript、Java、C/C++ 目前使用 regex-based rule scanning，不做語言 AST parser。
 - `--skip-ai` 模式不會呼叫 Gemini，因此語意判斷較保守。
 - Gemini 模式需要有效的 `GEMINI_API_KEY`，可從 shell environment 或 `.env` 載入。
 - 工具只產生稽核報告與建議，不會自動修改被掃描的專案程式碼。

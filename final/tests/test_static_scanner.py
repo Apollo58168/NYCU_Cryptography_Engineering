@@ -12,10 +12,14 @@ def scan(content: str) -> list[StaticMatch]:
     return StaticScanner().scan([source_file(content)])
 
 
+def scan_file(content: str, relative_path: str) -> list[StaticMatch]:
+    return StaticScanner().scan([source_file(content, relative_path)])
+
+
 def assert_has_match(
     matches: list[StaticMatch],
     rule_id: str,
-    algorithm_hint: str,
+    algorithm_hint: str | None,
     library_hint: str | None,
 ) -> StaticMatch:
     for match in matches:
@@ -81,6 +85,140 @@ def test_detects_ssl_context_rules() -> None:
 
     assert_has_match(matches, "ssl_context", "TLS", "ssl")
     assert_has_match(matches, "ssl_create_default_context", "TLS", "ssl")
+
+
+def test_detects_javascript_typescript_crypto_rules() -> None:
+    matches = scan_file(
+        "const { generateKeyPairSync, createECDH } = require('crypto');\n"
+        "generateKeyPairSync('rsa', { modulusLength: 2048 });\n"
+        "crypto.generateKeyPair('ec', { namedCurve: 'P-256' }, cb);\n"
+        "createECDH('prime256v1');\n"
+        "await crypto.subtle.generateKey({ name: 'RSA-PSS' }, true, ['sign']);\n",
+        "app.ts",
+    )
+
+    assert_has_match(matches, "js_crypto_generate_keypair_rsa", "RSA", "node:crypto")
+    assert_has_match(matches, "js_crypto_generate_keypair_ec", "ECC", "node:crypto")
+    assert_has_match(matches, "js_crypto_create_ecdh", "ECDH", "node:crypto")
+    assert_has_match(matches, "js_webcrypto_rsa", "RSA", "WebCrypto")
+
+
+def test_detects_jose_jsonwebtoken_and_node_forge_rules() -> None:
+    matches = scan_file(
+        "import { generateKeyPair, importPKCS8 } from 'jose';\n"
+        "await generateKeyPair('RS256');\n"
+        "await generateKeyPair('ES256');\n"
+        "await importPKCS8(privatePem, 'PS256');\n"
+        "jwt.sign(payload, privateKey, { algorithm: 'RS256' });\n"
+        "jwt.verify(token, publicKey, { algorithms: ['ES256'] });\n"
+        "forge.pki.rsa.generateKeyPair({ bits: 2048 });\n"
+        "forge.pki.publicKeyFromPem(pem);\n",
+        "auth.ts",
+    )
+
+    assert_has_match(matches, "js_jose_generate_keypair_rsa", "RSA", "jose")
+    assert_has_match(matches, "js_jose_generate_keypair_ecdsa", "ECDSA", "jose")
+    assert_has_match(matches, "js_jose_import_rsa_key", "RSA", "jose")
+    assert_has_match(matches, "js_jsonwebtoken_rsa_algorithm", "RSA", "jsonwebtoken")
+    assert_has_match(matches, "js_jsonwebtoken_ecdsa_algorithm", "ECDSA", "jsonwebtoken")
+    assert_has_match(matches, "js_node_forge_rsa_generate_keypair", "RSA", "node-forge")
+    assert_has_match(matches, "js_node_forge_rsa_key_from_pem", "RSA", "node-forge")
+
+
+def test_detects_java_jca_rules() -> None:
+    matches = scan_file(
+        'KeyPairGenerator.getInstance("RSA");\n'
+        'Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");\n'
+        'Signature.getInstance("SHA256withECDSA");\n'
+        'KeyAgreement.getInstance("ECDH");\n',
+        "App.java",
+    )
+
+    assert_has_match(matches, "java_keypairgenerator_rsa", "RSA", "Java JCA")
+    assert_has_match(matches, "java_cipher_rsa", "RSA", "Java JCE")
+    assert_has_match(matches, "java_signature_ecdsa", "ECDSA", "Java JCA")
+    assert_has_match(matches, "java_keyagreement_ecdh", "ECDH", "Java JCA")
+
+
+def test_detects_java_keystore_tls_and_bouncycastle_rules() -> None:
+    matches = scan_file(
+        'KeyStore.getInstance("PKCS12");\n'
+        'SSLContext.getInstance("TLSv1.3");\n'
+        "HttpsURLConnection connection = null;\n"
+        "Security.addProvider(new BouncyCastleProvider());\n"
+        'converter.setProvider("BC");\n'
+        "new RSAKeyPairGenerator();\n"
+        "new ECKeyPairGenerator();\n"
+        "new ECDSASigner();\n"
+        "new ECDHBasicAgreement();\n"
+        "new PEMParser(reader);\n"
+        'KeyPairGenerator.getInstance("RSA", "BC");\n',
+        "App.java",
+    )
+
+    assert_has_match(matches, "java_keystore_getinstance", None, "Java KeyStore")
+    assert_has_match(matches, "java_sslcontext_getinstance", None, "Java JSSE")
+    assert_has_match(matches, "java_https_tls_config", None, "Java JSSE")
+    assert_has_match(matches, "java_bouncycastle_provider", None, "BouncyCastle")
+    assert_has_match(matches, "java_bouncycastle_rsa_keypair_generator", "RSA", "BouncyCastle")
+    assert_has_match(matches, "java_bouncycastle_ec_keypair_generator", "ECC", "BouncyCastle")
+    assert_has_match(matches, "java_bouncycastle_ecdsa_signer", "ECDSA", "BouncyCastle")
+    assert_has_match(matches, "java_bouncycastle_ecdh_agreement", "ECDH", "BouncyCastle")
+    assert_has_match(matches, "java_bouncycastle_pem_parser", None, "BouncyCastle")
+    assert_has_match(matches, "java_keypairgenerator_rsa", "RSA", "Java JCA")
+
+
+def test_detects_c_cpp_openssl_rules() -> None:
+    matches = scan_file(
+        "RSA_generate_key_ex(rsa, 2048, e, NULL);\n"
+        "EVP_PKEY_assign(pkey, EVP_PKEY_RSA, rsa);\n"
+        "EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);\n"
+        "ECDSA_sign(0, digest, digest_len, sig, &sig_len, ec_key);\n"
+        "ECDH_compute_key(secret, secret_len, peer, ec_key, NULL);\n"
+        "DH_generate_parameters_ex(dh, 2048, 2, NULL);\n",
+        "crypto.cpp",
+    )
+
+    assert_has_match(matches, "openssl_rsa_generate_key_ex", "RSA", "OpenSSL")
+    assert_has_match(matches, "openssl_evp_pkey_rsa", "RSA", "OpenSSL")
+    assert_has_match(matches, "openssl_ec_key_new_by_curve_name", "ECC", "OpenSSL")
+    assert_has_match(matches, "openssl_ecdsa_sign", "ECDSA", "OpenSSL")
+    assert_has_match(matches, "openssl_ecdh_compute_key", "ECDH", "OpenSSL")
+    assert_has_match(matches, "openssl_dh_generate_parameters_ex", "DH", "OpenSSL")
+
+
+def test_detects_openssl_evp_rules() -> None:
+    matches = scan_file(
+        "EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, NULL);\n"
+        "EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL);\n"
+        "EVP_PKEY_CTX_new_id(EVP_PKEY_DH, NULL);\n"
+        "EVP_PKEY_keygen_init(ctx);\n"
+        "EVP_PKEY_keygen(ctx, &pkey);\n"
+        "EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, 2048);\n"
+        "EVP_DigestSignInit(ctx, NULL, md, NULL, pkey);\n"
+        "EVP_DigestVerifyFinal(ctx, sig, sig_len);\n"
+        "EVP_PKEY_derive_init(ctx);\n"
+        "EVP_PKEY_encrypt_init(ctx);\n"
+        "EVP_PKEY_decrypt(ctx, out, &out_len, in, in_len);\n"
+        "EVP_PKEY_set1_RSA(pkey, rsa);\n"
+        "PEM_read_bio_RSAPrivateKey(bp, NULL, NULL, NULL);\n"
+        "d2i_RSAPrivateKey(NULL, &ptr, len);\n",
+        "crypto.cpp",
+    )
+
+    assert_has_match(matches, "openssl_evp_pkey_ctx_new_id_rsa", "RSA", "OpenSSL")
+    assert_has_match(matches, "openssl_evp_pkey_ctx_new_id_ec", "ECC", "OpenSSL")
+    assert_has_match(matches, "openssl_evp_pkey_ctx_new_id_dh", "DH", "OpenSSL")
+    assert_has_match(matches, "openssl_evp_pkey_keygen", None, "OpenSSL")
+    assert_has_match(matches, "openssl_evp_rsa_keygen_bits", "RSA", "OpenSSL")
+    assert_has_match(matches, "openssl_evp_digest_sign", None, "OpenSSL")
+    assert_has_match(matches, "openssl_evp_digest_verify", None, "OpenSSL")
+    assert_has_match(matches, "openssl_evp_pkey_derive", None, "OpenSSL")
+    assert_has_match(matches, "openssl_evp_pkey_encrypt", None, "OpenSSL")
+    assert_has_match(matches, "openssl_evp_pkey_decrypt", None, "OpenSSL")
+    assert_has_match(matches, "openssl_evp_set_rsa_key", "RSA", "OpenSSL")
+    assert_has_match(matches, "openssl_pem_read_rsa_key", "RSA", "OpenSSL")
+    assert_has_match(matches, "openssl_der_read_rsa_key", "RSA", "OpenSSL")
 
 
 def test_detects_pycryptodome_rsa_rules() -> None:

@@ -2,7 +2,7 @@
 
 ## 1. Overall Goal
 
-本專案目前目標是實作 Python-only MVP：掃描本地 Python 專案中的傳統密碼學使用，透過 Gemini API 做語意分析，評估量子風險，產生 PQC 遷移建議，並輸出 Markdown 與 JSON 報告。
+本專案目前目標是實作多語言 MVP：掃描本地專案中的 Python、JavaScript/TypeScript、Java、C/C++ 傳統密碼學使用，透過 Gemini API 做語意分析，評估量子風險，產生 PQC 遷移建議，並輸出 Markdown 與 JSON 報告。
 
 ## 2. Main Agent Responsibility
 

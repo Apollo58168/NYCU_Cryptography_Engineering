@@ -124,3 +124,48 @@ def test_usage_type_inference() -> None:
         "tls_configuration",
         "unknown",
     ]
+
+
+def test_usage_type_inference_for_non_python_rules() -> None:
+    source = make_source(
+        [
+            "generateKeyPairSync('rsa', {});",
+            "KeyAgreement.getInstance(\"ECDH\");",
+            "Signature.getInstance(\"SHA256withRSA\");",
+            "Cipher.getInstance(\"RSA/ECB/OAEPWithSHA-256AndMGF1Padding\");",
+            "RSA_generate_key_ex(rsa, 2048, e, NULL);",
+            "KeyStore.getInstance(\"PKCS12\");",
+            "SSLContext.getInstance(\"TLSv1.3\");",
+            "EVP_DigestSignInit(ctx, NULL, md, NULL, pkey);",
+            "EVP_PKEY_derive_init(ctx);",
+            "EVP_PKEY_encrypt_init(ctx);",
+        ]
+    )
+    matches = [
+        make_match(1, rule_id="js_crypto_generate_keypair_rsa", matched_text="generateKeyPairSync('rsa')"),
+        make_match(2, rule_id="java_keyagreement_ecdh", matched_text='KeyAgreement.getInstance("ECDH")', algorithm_hint="ECDH"),
+        make_match(3, rule_id="java_signature_rsa", matched_text='Signature.getInstance("SHA256withRSA")'),
+        make_match(4, rule_id="java_cipher_rsa", matched_text='Cipher.getInstance("RSA")'),
+        make_match(5, rule_id="openssl_rsa_generate_key_ex", matched_text="RSA_generate_key_ex"),
+        make_match(6, rule_id="java_keystore_getinstance", matched_text="KeyStore.getInstance", algorithm_hint=None),
+        make_match(7, rule_id="java_sslcontext_getinstance", matched_text="SSLContext.getInstance", algorithm_hint=None),
+        make_match(8, rule_id="openssl_evp_digest_sign", matched_text="EVP_DigestSignInit", algorithm_hint=None),
+        make_match(9, rule_id="openssl_evp_pkey_derive", matched_text="EVP_PKEY_derive_init", algorithm_hint=None),
+        make_match(10, rule_id="openssl_evp_pkey_encrypt", matched_text="EVP_PKEY_encrypt_init", algorithm_hint=None),
+    ]
+    extractor = PatternExtractor(max_snippet_lines=1, context_lines=0)
+
+    evidence = extractor.extract([source], matches)
+
+    assert [item.usage_type for item in evidence] == [
+        "key_generation",
+        "key_exchange",
+        "signature",
+        "encryption",
+        "key_generation",
+        "certificate_handling",
+        "tls_configuration",
+        "signature",
+        "key_exchange",
+        "encryption",
+    ]
