@@ -1,7 +1,9 @@
 from pathlib import Path
+from io import BytesIO
+from urllib.error import HTTPError
 
 from pqc_audit.config import AppConfig
-from pqc_audit.gemini_analyzer import SemanticAnalyzer, build_prompt
+from pqc_audit.gemini_analyzer import GeminiRestTransport, SemanticAnalyzer, build_prompt
 from pqc_audit.models import CryptoEvidence
 
 
@@ -15,6 +17,33 @@ class FakeTransport:
         if isinstance(self.response, Exception):
             raise self.response
         return self.response
+
+
+class FakeResponse:
+    def __init__(self, body: str) -> None:
+        self.body = body.encode("utf-8")
+
+    def __enter__(self) -> "FakeResponse":
+        return self
+
+    def __exit__(self, exc_type, exc, traceback) -> None:
+        return None
+
+    def read(self) -> bytes:
+        return self.body
+
+
+class FakeUrlopen:
+    def __init__(self, responses: list[object]) -> None:
+        self.responses = responses
+        self.calls = 0
+
+    def __call__(self, request, timeout: int) -> object:
+        self.calls += 1
+        response = self.responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return response
 
 
 def make_config(tmp_path: Path) -> AppConfig:
@@ -107,3 +136,86 @@ def test_api_failure_returns_fallback(tmp_path: Path) -> None:
     assert result.confidence == 0.0
     assert result.usage_type == "key_generation"
 
+
+def http_error(status: int, body: str) -> HTTPError:
+    return HTTPError(
+        "https://example.test",
+        status,
+        "error",
+        {},
+        BytesIO(body.encode("utf-8")),
+    )
+
+
+def test_gemini_transport_retries_transient_429() -> None:
+    urlopen = FakeUrlopen(
+        [
+            http_error(
+                429,
+                '{"error": {"status": "RESOURCE_EXHAUSTED", "message": "Rate limit exceeded"}}',
+            ),
+            FakeResponse(
+                """{
+                    "candidates": [
+                        {"content": {"parts": [{"text": "{\\"ok\\": true}"}]}}
+                    ]
+                }"""
+            ),
+        ]
+    )
+    sleeps: list[float] = []
+    transport = GeminiRestTransport(
+        "key",
+        "model",
+        initial_retry_delay=0.5,
+        sleep=sleeps.append,
+        urlopen=urlopen,
+    )
+
+    result = transport.generate("prompt")
+
+    assert result == '{"ok": true}'
+    assert urlopen.calls == 2
+    assert sleeps == [0.5]
+
+
+def test_gemini_transport_does_not_retry_403() -> None:
+    urlopen = FakeUrlopen(
+        [
+            http_error(
+                403,
+                '{"error": {"status": "PERMISSION_DENIED", "message": "Forbidden"}}',
+            )
+        ]
+    )
+    transport = GeminiRestTransport("key", "model", sleep=lambda _: None, urlopen=urlopen)
+
+    try:
+        transport.generate("prompt")
+    except RuntimeError as exc:
+        assert "PERMISSION_DENIED" in str(exc)
+    else:
+        raise AssertionError("Expected RuntimeError")
+
+    assert urlopen.calls == 1
+
+
+def test_gemini_transport_does_not_retry_depleted_prepayment_429() -> None:
+    urlopen = FakeUrlopen(
+        [
+            http_error(
+                429,
+                '{"error": {"status": "RESOURCE_EXHAUSTED", "message": "Your prepayment credits are depleted."}}',
+            )
+        ]
+    )
+    transport = GeminiRestTransport("key", "model", sleep=lambda _: None, urlopen=urlopen)
+
+    try:
+        transport.generate("prompt")
+    except RuntimeError as exc:
+        assert "prepayment credits are depleted" in str(exc)
+    else:
+        raise AssertionError("Expected RuntimeError")
+
+    assert urlopen.calls == 1

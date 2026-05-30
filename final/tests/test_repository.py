@@ -5,19 +5,38 @@ import pytest
 from pqc_audit.repository import (
     IGNORED_DIRECTORIES,
     RepositoryError,
+    SUPPORTED_SOURCE_EXTENSIONS,
     load_source_files,
     scan_repository,
 )
 
 
-def test_scan_repository_returns_only_python_files(tmp_path: Path) -> None:
+def test_scan_repository_returns_supported_source_files(tmp_path: Path) -> None:
     (tmp_path / "app.py").write_text("print('ok')\n", encoding="utf-8")
+    (tmp_path / "app.ts").write_text("console.log('ok')\n", encoding="utf-8")
+    (tmp_path / "App.java").write_text("class App {}\n", encoding="utf-8")
+    (tmp_path / "crypto.cpp").write_text("int main() {}\n", encoding="utf-8")
     (tmp_path / "README.md").write_text("# docs\n", encoding="utf-8")
 
     result = scan_repository(tmp_path)
 
-    assert [source.relative_path for source in result.source_files] == ["app.py"]
+    assert [source.relative_path for source in result.source_files] == [
+        "App.java",
+        "app.py",
+        "app.ts",
+        "crypto.cpp",
+    ]
     assert result.errors == []
+
+
+def test_supported_extensions_include_requested_languages() -> None:
+    assert ".py" in SUPPORTED_SOURCE_EXTENSIONS
+    assert ".js" in SUPPORTED_SOURCE_EXTENSIONS
+    assert ".ts" in SUPPORTED_SOURCE_EXTENSIONS
+    assert ".java" in SUPPORTED_SOURCE_EXTENSIONS
+    assert ".c" in SUPPORTED_SOURCE_EXTENSIONS
+    assert ".cpp" in SUPPORTED_SOURCE_EXTENSIONS
+    assert ".hpp" in SUPPORTED_SOURCE_EXTENSIONS
 
 
 def test_scan_repository_ignores_unrelated_directories(tmp_path: Path) -> None:
