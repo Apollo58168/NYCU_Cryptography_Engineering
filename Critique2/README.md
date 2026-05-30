@@ -4,6 +4,22 @@ Course: Cryptography Engineering
 Spec date: April 16, 2026  
 Deadline: May 15, 2026, 23:59 Taiwan Time
 
+Critique2/
+├── data_gen/
+│   ├── export_parity_blocks.py
+│   ├── export_trusted_merkle_tree.py
+│   ├── generate_1mb.py
+│   ├── generate_128mb.py
+│   └── generate_corrupted.py
+├── .gitignore
+├── Critique2.pdf
+├── project2_spec.pdf
+├── README.md
+├── task1.py
+├── task2.py
+├── task3.py
+└── task4.py
+
 本作業分成兩個主要部分：
 
 1. Critique: 閱讀 Merkle digital signature paper 並撰寫英文評論。
