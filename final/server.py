@@ -2,69 +2,137 @@ import os
 import json
 import subprocess
 import tempfile
+import webbrowser
+
+from threading import Timer
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
+
+import uvicorn
+
+import platform
+import subprocess
 
 app = FastAPI()
 
-# 【重要】允許前端跨網域連線 (CORS)
+# 自動開啟瀏覽器
+
+def open_browser():
+    url = "http://127.0.0.1:8000"
+
+    # Windows
+    if platform.system() == "Windows":
+        os.startfile(url)
+
+    # WSL
+    elif "microsoft" in platform.uname().release.lower():
+        subprocess.run(["cmd.exe", "/c", "start", url])
+
+    # Linux desktop
+    else:
+        try:
+            webbrowser.open(url)
+        except Exception:
+            print(f"Open browser manually: {url}")
+
+
+# 提供 index.html
+@app.get("/")
+async def serve_index():
+    return FileResponse("index.html")
+
+
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 開放所有來源，方便本地開發測試
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 定義前端傳來的資料格式
+
+# 前端 request 格式
 class ScanRequest(BaseModel):
     repo_url: str
+
 
 @app.post("/api/scan")
 async def scan_repo(request: ScanRequest):
     repo_url = request.repo_url
-    
-    # 建立一個暫存資料夾來放 Clone 下來的程式碼與報告
+
     with tempfile.TemporaryDirectory() as temp_dir:
         repo_dir = os.path.join(temp_dir, "repo")
         report_dir = os.path.join(temp_dir, "reports")
+
         os.makedirs(report_dir, exist_ok=True)
-        
+
         try:
-            # 1. 執行 git clone
+            # clone repo
             subprocess.run(
-                ["git", "clone", repo_url, repo_dir], 
-                check=True, 
-                capture_output=True
+                ["git", "clone", repo_url, repo_dir],
+                check=True,
+                capture_output=True,
+                text=True
             )
-            
-            # 2. 執行你的 pqc-audit CLI 工具 (指定 target 為剛 clone 的資料夾，output 為暫存報告區)
-            # 注意：這裡預設使用 AI，確保 .env 的 GEMINI_API_KEY 已設定好
+
+            # 執行 pqc-audit
             subprocess.run(
                 [
-                    "uv", "run", "pqc-audit", 
-                    "--target", repo_dir, 
-                    "--output", report_dir, 
-                    "--format", "json"
+                    "uv",
+                    "run",
+                    "pqc-audit",
+                    "--target",
+                    repo_dir,
+                    "--output",
+                    report_dir,
+                    "--format",
+                    "json",
                 ],
                 check=True,
-                capture_output=True
+                capture_output=True,
+                text=True
             )
-            
-            # 3. 讀取產出的 security-report.json
-            json_file_path = os.path.join(report_dir, "security-report.json")
+
+            # 讀取 JSON
+            json_file_path = os.path.join(
+                report_dir,
+                "security-report.json"
+            )
+
             if not os.path.exists(json_file_path):
-                raise HTTPException(status_code=500, detail="報告生成失敗，找不到 JSON 檔案")
-                
+                raise HTTPException(
+                    status_code=500,
+                    detail="找不到 security-report.json"
+                )
+
             with open(json_file_path, "r", encoding="utf-8") as f:
                 report_data = json.load(f)
-                
-            # 4. 將 JSON 資料回傳給前端
+
             return report_data
-            
+
         except subprocess.CalledProcessError as e:
-            # 如果執行指令失敗，印出錯誤訊息方便 debug
-            error_msg = e.stderr.decode('utf-8') if e.stderr else str(e)
-            print(f"Error occurred: {error_msg}")
-            raise HTTPException(status_code=500, detail=f"系統執行失敗: {error_msg}")
+            error_msg = e.stderr if e.stderr else str(e)
+
+            print("Error occurred:")
+            print(error_msg)
+
+            raise HTTPException(
+                status_code=500,
+                detail=f"系統執行失敗:\n{error_msg}"
+            )
+
+
+# 一鍵啟動
+if __name__ == "__main__":
+    Timer(1, open_browser).start()
+
+    uvicorn.run(
+        "server:app",
+        host="127.0.0.1",
+        port=8000,
+        reload=True
+    )
