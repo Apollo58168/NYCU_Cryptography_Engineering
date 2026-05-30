@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PQC-Audit Dashboard</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    
+    <style>
+        /* 復古點陣背景 */
+        body {
+            background-color: #f4f4f0;
+            background-image: radial-gradient(#cbd5e1 2px, transparent 2px);
+            background-size: 24px 24px;
+            font-family: 'Courier New', Courier, monospace; 
+        }
+
+        /* 訂製復古卷軸 (只保留 Y 軸需要時出現) */
+        ::-webkit-scrollbar { width: 12px; height: 12px; }
+        ::-webkit-scrollbar-track { background: #e2e8f0; border-left: 2px solid #000; }
+        ::-webkit-scrollbar-thumb { background: #000; border: 2px solid #e2e8f0; }
+        
+        /* 針對深色程式碼區塊的卷軸微調 */
+        .code-scroll::-webkit-scrollbar-track { background: #282c34; border-left: 1px solid #1e1e1e; }
+        .code-scroll::-webkit-scrollbar-thumb { background: #4b5363; border: 2px solid #282c34; border-radius: 6px; }
+
+        /* Loading 動畫 */
+        .animate-pulse-fast { animation: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+        /* 復古硬陰影 UI 元件 */
+        .retro-box {
+            background: #ffffff;
+            border: 3px solid #000000;
+            box-shadow: 6px 6px 0px #000000;
+            border-radius: 4px;
+        }
+
+        /* 頂部橫幅/標題 */
+        .retro-banner {
+            background: #000000;
+            color: #ffffff;
+            padding: 4px 12px;
+            display: inline-block;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%); 
+        }
+
+        /* 按鈕特效 */
+        .retro-btn {
+            background: #FFD700; 
+            color: #000000;
+            border: 3px solid #000000;
+            box-shadow: 4px 4px 0px #000000;
+            font-weight: 900;
+            text-transform: uppercase;
+            transition: all 0.1s;
+        }
+        .retro-btn:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0px 0px 0px #000000;
+        }
+        
+        /* 列表按鈕特效與字體反白 */
+        .finding-btn {
+            color: #1f2937; 
+        }
+        .list-btn-active {
+            background: #000000;
+            color: #ffffff !important; 
+            transform: translate(2px, 2px);
+            box-shadow: 0px 0px 0px #000000;
+        }
+        .list-btn-active p.finding-path {
+            color: #e5e7eb !important; 
+        }
+    </style>
+</head>
+<body class="text-black min-h-screen relative overflow-x-hidden selection:bg-yellow-400 selection:text-black p-6">
+
+    <div class="max-w-[1600px] mx-auto min-h-[90vh] flex flex-col relative">
+
+        <div id="setup-view" class="flex-1 flex flex-col items-center justify-center">
+            <div class="retro-box w-full max-w-lg p-10 text-center">
+                <div class="retro-banner mb-6 text-xl">PQC-Audit Scanner</div>
+                <p class="text-sm font-bold mb-8 uppercase tracking-widest text-gray-700">Initialize Target Repository</p>
+                <div class="space-y-6">
+                    <input type="text" id="repo-url" placeholder="https://github.com/..." class="w-full bg-gray-100 border-3 border-black border-[3px] rounded-none px-4 py-3 text-black focus:outline-none focus:bg-yellow-50 font-bold">
+                    <button onclick="startScan()" class="retro-btn w-full py-4 text-lg tracking-wider">START AUDIT</button>
+                    <p id="error-message" class="text-red-600 font-bold text-sm hidden mt-2 bg-red-100 border-2 border-red-600 p-2"></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="loading-view" class="hidden flex-1 flex flex-col items-center justify-center">
+            <div class="retro-box p-10 flex flex-col items-center border-4 border-dashed">
+                <div class="w-12 h-12 border-[4px] border-gray-200 border-t-black rounded-full animate-spin mb-6"></div>
+                <h2 class="text-xl font-bold tracking-widest uppercase animate-pulse-fast">Analyzing Codebase...</h2>
+                <p class="text-sm font-bold text-gray-500 mt-2 uppercase">Please wait</p>
+            </div>
+        </div>
+
+        <div id="dashboard-view" class="hidden flex-1 flex flex-col">
+            
+            <header class="mb-8 flex justify-between items-end border-b-4 border-black pb-4">
+                <div>
+                    <h1 class="text-3xl font-black tracking-tighter uppercase mb-2">Audit Dashboard</h1>
+                    <p class="text-sm font-bold text-gray-600 uppercase">Target: <span id="target-path" class="text-black bg-yellow-200 px-2 py-0.5 border border-black"></span></p>
+                </div>
+                <button onclick="location.reload()" class="retro-btn px-6 py-2 text-sm">NEW SCAN</button>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="retro-box p-6 flex flex-col justify-between">
+                    <h3 class="text-sm font-bold text-gray-700 uppercase tracking-widest border-b-2 border-black pb-2 mb-4">Total Findings</h3>
+                    <p id="total-findings" class="text-5xl font-black text-black">0</p>
+                </div>
+                <div class="retro-box p-6 flex flex-col justify-between border-red-600 bg-red-50">
+                    <h3 class="text-sm font-bold text-red-700 uppercase tracking-widest border-b-2 border-red-600 pb-2 mb-4">Quantum Vulnerable</h3>
+                    <p id="quantum-vulnerable" class="text-5xl font-black text-red-600">0</p>
+                </div>
+                <div class="retro-box p-6 flex flex-col justify-between border-green-600 bg-green-50">
+                    <h3 class="text-sm font-bold text-green-700 uppercase tracking-widest border-b-2 border-green-600 pb-2 mb-4">Quantum Safe Ready</h3>
+                    <p id="quantum-safe" class="text-5xl font-black text-green-600">0</p>
+                </div>
+            </div>
+
+            <div class="flex-1 flex flex-col lg:flex-row gap-6 pb-6">
+                
+                <div class="w-full lg:w-[20%] retro-box flex flex-col overflow-hidden h-[600px] bg-gray-100">
+                    <div class="p-3 bg-black text-white shrink-0">
+                        <h3 class="text-xs font-bold tracking-widest uppercase">Vulnerabilities</h3>
+                    </div>
+                    <div id="findings-list" class="flex-1 overflow-y-auto p-3 space-y-3"></div>
+                </div>
+
+                <div class="w-full lg:w-[55%] retro-box flex flex-col overflow-hidden hidden h-[600px] bg-[#282c34]" id="detail-code-view">
+                    <div class="p-3 bg-black text-white flex justify-between items-center shrink-0 border-b-2 border-black">
+                        <div class="flex items-center gap-3">
+                            <div class="flex gap-1.5">
+                                <div class="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+                                <div class="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
+                                <div class="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+                            </div>
+                            <h3 class="text-xs font-bold tracking-widest uppercase">Source Code</h3>
+                        </div>
+                        <span id="detail-location" class="text-[10px] bg-white text-black px-2 py-0.5 font-bold"></span>
+                    </div>
+                    <pre class="flex-1 overflow-y-auto overflow-x-hidden p-4 text-[13px] leading-relaxed bg-[#282c34] text-gray-300 code-scroll"><code id="detail-snippet" class="bg-transparent font-mono"></code></pre>
+                </div>
+
+                <div class="w-full lg:w-[25%] retro-box flex flex-col overflow-hidden hidden h-[600px] bg-yellow-50" id="detail-ai-view">
+                    <div class="p-3 bg-black text-white shrink-0">
+                        <h3 class="text-xs font-bold tracking-widest uppercase text-yellow-400">AI Recommendation</h3>
+                    </div>
+                    <div class="p-5 flex-1 overflow-y-auto space-y-6">
+                        <div>
+                            <h4 class="text-[11px] font-black uppercase tracking-widest border-b-2 border-black pb-1 mb-2">Action Required</h4>
+                            <p id="detail-action" class="text-sm font-bold leading-relaxed"></p>
+                        </div>
+                        <div>
+                            <h4 class="text-[11px] font-black uppercase tracking-widest border-b-2 border-black pb-1 mb-3">Candidate Algos</h4>
+                            <div id="detail-candidates" class="flex flex-wrap gap-2"></div>
+                        </div>
+                        <div>
+                            <h4 class="text-[11px] font-black uppercase tracking-widest border-b-2 border-black pb-1 mb-3">Migration Steps</h4>
+                            <ul id="detail-steps" class="space-y-3 text-sm font-bold list-decimal pl-5"></ul>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BACKEND_API_URL = 'http://localhost:8000/api/scan'; 
+
+        async function startScan() {
+            const urlInput = document.getElementById('repo-url').value.trim();
+            const errorMsg = document.getElementById('error-message');
+            
+            if (!urlInput) {
+                errorMsg.textContent = 'ERROR: Repository URL is required.';
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            errorMsg.classList.add('hidden');
+            document.getElementById('setup-view').classList.add('hidden');
+            document.getElementById('loading-view').classList.remove('hidden');
+
+            try {
+                const response = await fetch(BACKEND_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ repo_url: urlInput }) 
+                });
+
+                if (!response.ok) throw new Error(`Server returned ${response.status}`);
+                const jsonData = await response.json();
+                
+                document.getElementById('loading-view').classList.add('hidden');
+                renderDashboard(jsonData);
+
+            } catch (error) {
+                console.error(error);
+                document.getElementById('loading-view').classList.add('hidden');
+                document.getElementById('setup-view').classList.remove('hidden');
+                errorMsg.textContent = `CONNECTION FAILED: ${error.message}`;
+                errorMsg.classList.remove('hidden');
+            }
+        }
+
+        function renderDashboard(data) {
+            document.getElementById('dashboard-view').classList.remove('hidden');
+            document.getElementById('target-path').textContent = data.target_path || document.getElementById('repo-url').value;
+            
+            document.getElementById('total-findings').textContent = data.summary?.total_findings || 0;
+            document.getElementById('quantum-vulnerable').textContent = data.summary?.quantum_vulnerable || 0;
+            document.getElementById('quantum-safe').textContent = data.summary?.quantum_safe || 0;
+
+            const listContainer = document.getElementById('findings-list');
+            listContainer.innerHTML = ''; 
+
+            if (data.findings && data.findings.length > 0) {
+                data.findings.forEach((finding, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'finding-btn w-full text-left p-3 border-2 border-black bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:bg-yellow-200 transition-all shrink-0 mb-1';
+                    btn.onclick = () => showDetail(finding, btn);
+                    
+                    btn.innerHTML = `
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="px-2 py-0.5 bg-red-600 text-white text-[10px] font-bold uppercase border border-black">
+                                ${finding.evidence.algorithm || 'Unknown'}
+                            </span>
+                            <span class="text-[10px] font-black uppercase">risk score: ${finding.risk_assessment?.risk_score || 'N/A'}</span>
+                        </div>
+                        <p class="finding-path text-xs truncate font-bold break-all">${finding.evidence.file_path}</p>
+                    `;
+                    listContainer.appendChild(btn);
+                    if (index === 0) btn.click();
+                });
+            } else {
+                listContainer.innerHTML = '<p class="text-sm font-bold p-4 text-center">NO DATA FOUND.</p>';
+            }
+        }
+
+        function showDetail(finding, clickedBtn) {
+            document.getElementById('detail-code-view').classList.remove('hidden');
+            document.getElementById('detail-ai-view').classList.remove('hidden');
+
+            document.querySelectorAll('.finding-btn').forEach(btn => {
+                btn.classList.remove('list-btn-active');
+                btn.classList.add('bg-white', 'shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]');
+            });
+            clickedBtn.classList.remove('bg-white', 'shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]');
+            clickedBtn.classList.add('list-btn-active');
+
+            document.getElementById('detail-location').textContent = `${finding.evidence.file_path} [${finding.evidence.start_line}-${finding.evidence.end_line}]`;
+            
+            const snippetElement = document.getElementById('detail-snippet');
+            const rawCode = finding.evidence.snippet;
+            const startLine = finding.evidence.start_line;
+
+            const vulnerableLines = new Set(
+                finding.evidence.static_matches 
+                    ? finding.evidence.static_matches.map(match => match.line_number)
+                    : [startLine]
+            );
+
+            if (rawCode) {
+                snippetElement.removeAttribute('data-highlighted');
+                snippetElement.className = 'hljs language-python !bg-transparent w-full inline-block'; 
+
+                const highlightedHtml = hljs.highlight(rawCode, { language: 'python' }).value;
+                const lines = highlightedHtml.split('\n');
+                
+                const formattedHtml = lines.map((lineHtml, index) => {
+                    const currentLineNumber = startLine + index;
+                    const isVulnerableLine = vulnerableLines.has(currentLineNumber); 
+                    
+                    // 💡 針對深色主題調整：有問題的行數變成暗紅高亮，一般的行數保持透明，滑鼠懸浮有微弱的反饋
+                    const rowClass = isVulnerableLine 
+                        ? 'bg-red-900/40 border-l-[4px] border-red-500' 
+                        : 'border-l-[4px] border-transparent hover:bg-white/5'; 
+                    
+                    const numColor = isVulnerableLine ? 'text-red-400 font-bold' : 'text-gray-500';
+                    
+                    return `<div class="flex px-2 py-[2px] ${rowClass} transition-colors font-mono">
+                                <span class="w-10 text-right pr-4 select-none text-[11px] ${numColor} shrink-0 pt-0.5">${currentLineNumber}</span>
+                                <span class="whitespace-pre-wrap break-words flex-1">${lineHtml || ' '}</span>
+                            </div>`;
+                }).join('');
+                
+                snippetElement.innerHTML = formattedHtml;
+            } else {
+                snippetElement.textContent = 'NO SOURCE CODE AVAILABLE.';
+            }
+            
+            const rec = finding.recommendation;
+            if (rec && rec.recommended_action) {
+                document.getElementById('detail-action').textContent = rec.recommended_action;
+                
+                const candidatesContainer = document.getElementById('detail-candidates');
+                candidatesContainer.innerHTML = '';
+                (rec.candidate_pqc_algorithms || []).forEach(algo => {
+                    const div = document.createElement('div');
+                    div.className = 'px-2 py-1 bg-black text-white text-[10px] font-bold uppercase tracking-wider shadow-[2px_2px_0px_0px_#FFD700] mb-1 mr-1';
+                    div.textContent = algo;
+                    candidatesContainer.appendChild(div);
+                });
+
+                const stepsContainer = document.getElementById('detail-steps');
+                stepsContainer.innerHTML = '';
+                (rec.developer_steps || []).forEach(step => {
+                    const li = document.createElement('li');
+                    li.textContent = step;
+                    stepsContainer.appendChild(li);
+                });
+            } else {
+                document.getElementById('detail-action').textContent = 'NO AI RECOMMENDATION.';
+                document.getElementById('detail-candidates').innerHTML = '';
+                document.getElementById('detail-steps').innerHTML = '';
+            }
+        }
+    </script>
+</body>
+</html>
