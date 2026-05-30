@@ -39,8 +39,8 @@ class MigrationRecommender:
             algorithm = self._normalized_algorithm(evidence.algorithm)
 
         usage_type = self._usage_type(evidence, analysis)
-        guidance = self._guidance_for(algorithm, usage_type)
         risk_label = risk.risk_level if risk else "unknown"
+        guidance = self._guidance_for(algorithm, usage_type, risk_label)
 
         summary = (
             f"{evidence.evidence_id}: {algorithm or 'Unknown algorithm'} used for "
@@ -70,7 +70,25 @@ class MigrationRecommender:
             return None
         return algorithm.strip().upper().replace("-", "")
 
-    def _guidance_for(self, algorithm: str | None, usage_type: UsageType) -> dict[str, list[str] | str]:
+    def _guidance_for(
+        self,
+        algorithm: str | None,
+        usage_type: UsageType,
+        risk_level: str = "unknown",
+    ) -> dict[str, list[str] | str]:
+        if risk_level == "quantum_safe" or algorithm in {"AES", "HMAC", "SHA2", "SHA3"}:
+            return {
+                "recommended_action": "No PQC migration is required for this symmetric, hashing, or MAC usage based on the current quantum-risk model.",
+                "candidate_pqc_algorithms": [],
+                "compatibility_notes": [
+                    "Grover-style considerations may require adequate symmetric key or digest sizes, but this is not a Shor-vulnerable public-key usage."
+                ],
+                "developer_steps": [
+                    "Confirm that the usage is not combined with RSA, ECC, ECDSA, ECDH, DH, or DSA in the same protocol path.",
+                    "Keep AES key sizes and SHA/HMAC digest sizes aligned with the intended security level.",
+                ],
+            }
+
         if usage_type == "tls_configuration":
             return {
                 "recommended_action": "Review the TLS stack and configuration for PQC or hybrid key exchange support.",

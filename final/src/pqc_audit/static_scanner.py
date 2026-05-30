@@ -5,7 +5,7 @@ import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from pqc_audit.models import SourceFile, StaticMatch
+from pqc_audit.models import ConfidenceLevel, EvidenceType, SourceFile, SourceKind, StaticMatch
 
 
 @dataclass(frozen=True, slots=True)
@@ -120,6 +120,36 @@ _TEXT_RULES: tuple[_Rule, ...] = (
         "RSA",
         "node-forge",
     ),
+    _Rule(
+        "js_crypto_create_hash_sha2",
+        re.compile(r"\b(?:crypto\.)?createHash\s*\(\s*['\"]sha(?:256|384|512)['\"]", re.IGNORECASE),
+        "SHA-2",
+        "node:crypto",
+    ),
+    _Rule(
+        "js_crypto_create_hmac",
+        re.compile(r"\b(?:crypto\.)?createHmac\s*\(\s*['\"]sha(?:256|384|512)['\"]", re.IGNORECASE),
+        "HMAC",
+        "node:crypto",
+    ),
+    _Rule(
+        "js_webcrypto_digest_sha2",
+        re.compile(r"\bSHA-(?:256|384|512)\b", re.IGNORECASE),
+        "SHA-2",
+        "WebCrypto",
+    ),
+    _Rule(
+        "js_webcrypto_aes",
+        re.compile(r"\bAES-(?:GCM|CBC|CTR|KW)\b", re.IGNORECASE),
+        "AES",
+        "WebCrypto",
+    ),
+    _Rule(
+        "js_webcrypto_hmac",
+        re.compile(r"\bHMAC\b", re.IGNORECASE),
+        "HMAC",
+        "WebCrypto",
+    ),
     # Java JCA / JCE APIs.
     _Rule(
         "java_keypairgenerator_rsa",
@@ -222,6 +252,30 @@ _TEXT_RULES: tuple[_Rule, ...] = (
         re.compile(r"\b(?:PEMParser|JcaPEMKeyConverter)\b"),
         None,
         "BouncyCastle",
+    ),
+    _Rule(
+        "java_message_digest_sha2",
+        re.compile(r"\bMessageDigest\.getInstance\s*\(\s*['\"]SHA-(?:256|384|512)['\"]", re.IGNORECASE),
+        "SHA-2",
+        "Java JCA",
+    ),
+    _Rule(
+        "java_mac_hmac_sha2",
+        re.compile(r"\bMac\.getInstance\s*\(\s*['\"]HmacSHA(?:256|384|512)['\"]", re.IGNORECASE),
+        "HMAC",
+        "Java JCA",
+    ),
+    _Rule(
+        "java_cipher_aes",
+        re.compile(r"\bCipher\.getInstance\s*\(\s*['\"][^'\"]*AES[^'\"]*['\"]\s*\)"),
+        "AES",
+        "Java JCE",
+    ),
+    _Rule(
+        "java_keygenerator_aes",
+        re.compile(r"\bKeyGenerator\.getInstance\s*\(\s*['\"]AES['\"](?:\s*,[^)]*)?\)"),
+        "AES",
+        "Java JCA",
     ),
     # C / C++ OpenSSL APIs.
     _Rule(
@@ -345,6 +399,24 @@ _TEXT_RULES: tuple[_Rule, ...] = (
         "OpenSSL",
     ),
     _Rule(
+        "openssl_evp_sha2",
+        re.compile(r"\bEVP_sha(?:256|384|512)\s*\("),
+        "SHA-2",
+        "OpenSSL",
+    ),
+    _Rule(
+        "openssl_hmac",
+        re.compile(r"\bHMAC\s*\("),
+        "HMAC",
+        "OpenSSL",
+    ),
+    _Rule(
+        "openssl_evp_aes",
+        re.compile(r"\bEVP_aes_(?:128|192|256)_(?:gcm|cbc|ctr|ecb)\s*\("),
+        "AES",
+        "OpenSSL",
+    ),
+    _Rule(
         "pycryptodome_crypto_rsa",
         re.compile(r"\bCrypto\.PublicKey\.RSA\b"),
         "RSA",
@@ -354,6 +426,60 @@ _TEXT_RULES: tuple[_Rule, ...] = (
         "pycryptodome_cryptodome_rsa",
         re.compile(r"\bCryptodome\.PublicKey\.RSA\b"),
         "RSA",
+        "PyCryptodome",
+    ),
+    _Rule(
+        "py_hashlib_sha2",
+        re.compile(r"\bhashlib\.sha(?:256|384|512)\s*\("),
+        "SHA-2",
+        "hashlib",
+    ),
+    _Rule(
+        "py_hashlib_sha3",
+        re.compile(r"\bhashlib\.sha3_(?:256|384|512)\s*\("),
+        "SHA-3",
+        "hashlib",
+    ),
+    _Rule(
+        "py_hmac_new",
+        re.compile(r"\bhmac\.new\s*\("),
+        "HMAC",
+        "hmac",
+    ),
+    _Rule(
+        "py_cryptography_hashes_sha2",
+        re.compile(r"\bhashes\.SHA(?:256|384|512)\s*\("),
+        "SHA-2",
+        "cryptography",
+    ),
+    _Rule(
+        "py_cryptography_hashes_sha3",
+        re.compile(r"\bhashes\.SHA3_(?:256|384|512)\s*\("),
+        "SHA-3",
+        "cryptography",
+    ),
+    _Rule(
+        "py_cryptography_hmac",
+        re.compile(r"\bhmac\.HMAC\s*\("),
+        "HMAC",
+        "cryptography",
+    ),
+    _Rule(
+        "py_cryptography_aes",
+        re.compile(r"\balgorithms\.AES\s*\("),
+        "AES",
+        "cryptography",
+    ),
+    _Rule(
+        "pycryptodome_crypto_aes",
+        re.compile(r"\bCrypto\.Cipher\.AES\b"),
+        "AES",
+        "PyCryptodome",
+    ),
+    _Rule(
+        "pycryptodome_cryptodome_aes",
+        re.compile(r"\bCryptodome\.Cipher\.AES\b"),
+        "AES",
         "PyCryptodome",
     ),
     _Rule("keyword_diffie_hellman", re.compile(r"\bDiffie-Hellman\b"), "Diffie-Hellman", None),
@@ -376,6 +502,21 @@ _CALL_RULES = {
     ("dh", "generate_parameters"): ("cryptography_dh_generate_parameters", "Diffie-Hellman", "cryptography"),
     ("ssl", "SSLContext"): ("ssl_context", "TLS", "ssl"),
     ("ssl", "create_default_context"): ("ssl_create_default_context", "TLS", "ssl"),
+    ("hashlib", "sha256"): ("py_hashlib_sha2", "SHA-2", "hashlib"),
+    ("hashlib", "sha384"): ("py_hashlib_sha2", "SHA-2", "hashlib"),
+    ("hashlib", "sha512"): ("py_hashlib_sha2", "SHA-2", "hashlib"),
+    ("hashlib", "sha3_256"): ("py_hashlib_sha3", "SHA-3", "hashlib"),
+    ("hashlib", "sha3_384"): ("py_hashlib_sha3", "SHA-3", "hashlib"),
+    ("hashlib", "sha3_512"): ("py_hashlib_sha3", "SHA-3", "hashlib"),
+    ("hmac", "new"): ("py_hmac_new", "HMAC", "hmac"),
+    ("hashes", "SHA256"): ("py_cryptography_hashes_sha2", "SHA-2", "cryptography"),
+    ("hashes", "SHA384"): ("py_cryptography_hashes_sha2", "SHA-2", "cryptography"),
+    ("hashes", "SHA512"): ("py_cryptography_hashes_sha2", "SHA-2", "cryptography"),
+    ("hashes", "SHA3_256"): ("py_cryptography_hashes_sha3", "SHA-3", "cryptography"),
+    ("hashes", "SHA3_384"): ("py_cryptography_hashes_sha3", "SHA-3", "cryptography"),
+    ("hashes", "SHA3_512"): ("py_cryptography_hashes_sha3", "SHA-3", "cryptography"),
+    ("hmac", "HMAC"): ("py_cryptography_hmac", "HMAC", "cryptography"),
+    ("algorithms", "AES"): ("py_cryptography_aes", "AES", "cryptography"),
 }
 
 
@@ -456,6 +597,21 @@ class StaticScanner:
                         )
                     )
 
+        if node.module in {"Crypto.Cipher", "Cryptodome.Cipher"}:
+            for alias in node.names:
+                if alias.name == "AES":
+                    matches.append(
+                        self._build_match(
+                            source_file,
+                            node.lineno,
+                            "pycryptodome_import_aes",
+                            alias.name,
+                            "AES",
+                            "PyCryptodome",
+                            lines,
+                        )
+                    )
+
         return matches
 
     def _match_import(
@@ -475,6 +631,18 @@ class StaticScanner:
                         "pycryptodome_import_rsa",
                         alias.name,
                         "RSA",
+                        "PyCryptodome",
+                        lines,
+                    )
+                )
+            if alias.name in {"Crypto.Cipher.AES", "Cryptodome.Cipher.AES"}:
+                matches.append(
+                    self._build_match(
+                        source_file,
+                        node.lineno,
+                        "pycryptodome_import_aes",
+                        alias.name,
+                        "AES",
                         "PyCryptodome",
                         lines,
                     )
@@ -546,6 +714,9 @@ class StaticScanner:
         lines: list[str],
     ) -> StaticMatch:
         line_text = lines[line_number - 1].strip() if 0 < line_number <= len(lines) else ""
+        evidence_type = self._evidence_type(rule_id)
+        source_kind = self._source_kind(line_text, matched_text)
+        confidence = self._confidence(evidence_type, source_kind)
         return StaticMatch(
             source_file.relative_path,
             line_number,
@@ -553,9 +724,68 @@ class StaticScanner:
             matched_text,
             algorithm_hint,
             library_hint,
-            "high",
+            confidence,
             line_text,
+            evidence_type,
+            source_kind,
+            confidence,
         )
+
+    def _evidence_type(self, rule_id: str) -> EvidenceType:
+        if "keyword" in rule_id:
+            return "keyword"
+        if "import" in rule_id:
+            return "import"
+        if any(
+            marker in rule_id
+            for marker in (
+                "algorithm",
+                "keystore",
+                "sslcontext",
+                "https_tls",
+                "webcrypto",
+            )
+        ):
+            return "config"
+        if rule_id:
+            return "api_call"
+        return "unknown"
+
+    def _source_kind(self, line_text: str, matched_text: str) -> SourceKind:
+        stripped = line_text.strip()
+        if stripped.startswith(("#", "//", "/*", "*")):
+            return "comment"
+        if self._looks_like_string_match(line_text, matched_text):
+            return "string"
+        return "code"
+
+    def _looks_like_string_match(self, line_text: str, matched_text: str) -> bool:
+        index = line_text.find(matched_text)
+        if index < 0:
+            return False
+
+        quote_positions = [
+            position
+            for position, char in enumerate(line_text)
+            if char in {"'", '"', "`"}
+        ]
+        for start, end in zip(quote_positions[::2], quote_positions[1::2], strict=False):
+            if start < index < end:
+                return True
+        return False
+
+    def _confidence(
+        self,
+        evidence_type: EvidenceType,
+        source_kind: SourceKind,
+    ) -> ConfidenceLevel:
+        if source_kind in {"comment", "string"} or evidence_type in {"keyword", "comment_or_string"}:
+            return "low"
+        if evidence_type in {"import", "config"}:
+            return "medium"
+        if evidence_type == "api_call":
+            return "high"
+        return "medium"
 
     def _dedupe(self, matches: list[StaticMatch]) -> list[StaticMatch]:
         seen: set[tuple[str, int, str, str]] = set()

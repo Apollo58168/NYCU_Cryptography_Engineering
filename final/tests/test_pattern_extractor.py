@@ -139,6 +139,9 @@ def test_usage_type_inference_for_non_python_rules() -> None:
             "EVP_DigestSignInit(ctx, NULL, md, NULL, pkey);",
             "EVP_PKEY_derive_init(ctx);",
             "EVP_PKEY_encrypt_init(ctx);",
+            "hashlib.sha256(data).digest();",
+            "hmac.new(key, data, 'sha256');",
+            "algorithms.AES(key);",
         ]
     )
     matches = [
@@ -152,6 +155,9 @@ def test_usage_type_inference_for_non_python_rules() -> None:
         make_match(8, rule_id="openssl_evp_digest_sign", matched_text="EVP_DigestSignInit", algorithm_hint=None),
         make_match(9, rule_id="openssl_evp_pkey_derive", matched_text="EVP_PKEY_derive_init", algorithm_hint=None),
         make_match(10, rule_id="openssl_evp_pkey_encrypt", matched_text="EVP_PKEY_encrypt_init", algorithm_hint=None),
+        make_match(11, rule_id="py_hashlib_sha2", matched_text="hashlib.sha256", algorithm_hint="SHA-2"),
+        make_match(12, rule_id="py_hmac_new", matched_text="hmac.new", algorithm_hint="HMAC"),
+        make_match(13, rule_id="py_cryptography_aes", matched_text="algorithms.AES", algorithm_hint="AES"),
     ]
     extractor = PatternExtractor(max_snippet_lines=1, context_lines=0)
 
@@ -168,4 +174,29 @@ def test_usage_type_inference_for_non_python_rules() -> None:
         "signature",
         "key_exchange",
         "encryption",
+        "hashing",
+        "mac",
+        "symmetric_encryption",
     ]
+
+
+def test_infers_frontend_metadata_from_static_matches() -> None:
+    source = make_source(["from cryptography.hazmat.primitives.asymmetric import rsa"])
+    matches = [
+        make_match(
+            1,
+            rule_id="cryptography_import_rsa",
+            matched_text="rsa",
+            line_text="from cryptography.hazmat.primitives.asymmetric import rsa",
+            library_hint="cryptography",
+        )
+    ]
+    matches[0].evidence_type = "import"
+    matches[0].source_kind = "code"
+    matches[0].confidence = "medium"
+
+    evidence = PatternExtractor(max_snippet_lines=1, context_lines=0).extract([source], matches)[0]
+
+    assert evidence.evidence_type == "import"
+    assert evidence.source_kind == "code"
+    assert evidence.confidence == "medium"

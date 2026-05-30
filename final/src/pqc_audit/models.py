@@ -5,6 +5,24 @@ from pathlib import Path
 from typing import Any, Literal
 
 
+ConfidenceLevel = Literal["high", "medium", "low"]
+
+EvidenceType = Literal[
+    "api_call",
+    "import",
+    "config",
+    "keyword",
+    "comment_or_string",
+    "unknown",
+]
+
+FindingCategory = Literal[
+    "vulnerability",
+    "needs_review",
+    "quantum_safe",
+    "low_confidence",
+]
+
 RiskLevel = Literal[
     "quantum_safe",
     "partially_vulnerable",
@@ -19,8 +37,13 @@ UsageType = Literal[
     "key_generation",
     "certificate_handling",
     "tls_configuration",
+    "hashing",
+    "mac",
+    "symmetric_encryption",
     "unknown",
 ]
+
+SourceKind = Literal["code", "comment", "string", "unknown"]
 
 ReportFormat = Literal["markdown", "json", "both"]
 
@@ -38,6 +61,9 @@ USAGE_TYPES: tuple[str, ...] = (
     "key_generation",
     "certificate_handling",
     "tls_configuration",
+    "hashing",
+    "mac",
+    "symmetric_encryption",
     "unknown",
 )
 
@@ -62,6 +88,9 @@ class StaticMatch:
     library_hint: str | None
     severity_hint: str
     line_text: str
+    evidence_type: EvidenceType = "unknown"
+    source_kind: SourceKind = "code"
+    confidence: ConfidenceLevel = "medium"
 
 
 @dataclass(slots=True)
@@ -76,6 +105,9 @@ class CryptoEvidence:
     usage_type: UsageType
     source: str
     static_matches: list[StaticMatch] = field(default_factory=list)
+    evidence_type: EvidenceType = "unknown"
+    source_kind: SourceKind = "code"
+    confidence: ConfidenceLevel = "medium"
 
 
 @dataclass(slots=True)
@@ -98,6 +130,9 @@ class RiskAssessment:
     risk_score: int
     risk_factors: list[str]
     reason: str
+    finding_category: FindingCategory = "needs_review"
+    display_priority: int = 50
+    confidence: ConfidenceLevel = "medium"
 
 
 @dataclass(slots=True)
@@ -125,4 +160,3 @@ class AuditReport:
     summary: dict[str, Any]
     findings: list[Finding]
     errors: list[str]
-

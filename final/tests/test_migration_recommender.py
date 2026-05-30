@@ -48,6 +48,19 @@ def make_risk(evidence_id: str, risk_score: int = 90) -> RiskAssessment:
     )
 
 
+def make_safe_risk(evidence_id: str) -> RiskAssessment:
+    return RiskAssessment(
+        evidence_id=evidence_id,
+        risk_level="quantum_safe",
+        risk_score=10,
+        risk_factors=["quantum_safe"],
+        reason="symmetric crypto is quantum-safe for this audit",
+        finding_category="quantum_safe",
+        display_priority=90,
+        confidence="high",
+    )
+
+
 def recommend_one(
     evidence: CryptoEvidence,
     analysis: SemanticAnalysis | None = None,
@@ -95,6 +108,18 @@ def test_unknown_usage_recommends_manual_context_confirmation() -> None:
     assert "Manually confirm" in recommendation.recommended_action
     assert recommendation.candidate_pqc_algorithms == ["Context-dependent PQC algorithm selection"]
     assert recommendation.developer_steps
+
+
+def test_quantum_safe_usage_does_not_recommend_pqc_migration() -> None:
+    evidence = make_evidence("app.py:8-8", "AES", "symmetric_encryption")
+    recommendation = recommend_one(
+        evidence,
+        make_analysis(evidence.evidence_id, "AES", "symmetric_encryption"),
+        make_safe_risk(evidence.evidence_id),
+    )
+
+    assert "No PQC migration is required" in recommendation.recommended_action
+    assert recommendation.candidate_pqc_algorithms == []
 
 
 def test_high_risk_finding_has_recommended_action() -> None:

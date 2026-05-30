@@ -124,6 +124,7 @@ class AuditPipeline:
 
 
 def static_fallback_analysis(evidence: CryptoEvidence) -> SemanticAnalysis:
+    confidence_by_level = {"high": 0.9, "medium": 0.65, "low": 0.35}
     return SemanticAnalysis(
         evidence_id=evidence.evidence_id,
         is_real_crypto_usage=True,
@@ -132,7 +133,7 @@ def static_fallback_analysis(evidence: CryptoEvidence) -> SemanticAnalysis:
         usage_type=evidence.usage_type,
         is_test_or_example=False,
         explanation="AI analysis skipped; result based on static scanner evidence.",
-        confidence=0.5,
+        confidence=confidence_by_level[evidence.confidence],
         raw_model_output="",
     )
 
@@ -159,4 +160,3 @@ def build_findings(
         findings.append(Finding(evidence, analysis, risk, recommendation))
 
     return findings
-

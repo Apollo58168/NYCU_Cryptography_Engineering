@@ -9,6 +9,9 @@ def evidence(
     algorithm: str | None = "RSA",
     usage_type: str = "encryption",
     file_path: str = "src/app.py",
+    evidence_type: str = "api_call",
+    source_kind: str = "code",
+    confidence: str = "high",
 ) -> CryptoEvidence:
     return CryptoEvidence(
         evidence_id=evidence_id,
@@ -20,6 +23,9 @@ def evidence(
         library=None,
         usage_type=usage_type,  # type: ignore[arg-type]
         source="static",
+        evidence_type=evidence_type,  # type: ignore[arg-type]
+        source_kind=source_kind,  # type: ignore[arg-type]
+        confidence=confidence,  # type: ignore[arg-type]
     )
 
 
@@ -52,6 +58,8 @@ def test_rsa_is_quantum_vulnerable() -> None:
     assert assessment.evidence_id == "ev-1"
     assert assessment.risk_level == "quantum_vulnerable"
     assert assessment.risk_score == 90
+    assert assessment.finding_category == "vulnerability"
+    assert assessment.confidence == "high"
     assert "algorithm:RSA" in assessment.risk_factors
 
 
@@ -76,6 +84,7 @@ def test_tls_unknown_public_key_algorithm_is_partially_vulnerable() -> None:
     assessment = result[0]
     assert assessment.risk_level == "partially_vulnerable"
     assert assessment.risk_score == 60
+    assert assessment.finding_category == "needs_review"
     assert "algorithm:unknown" in assessment.risk_factors
 
 
@@ -88,6 +97,7 @@ def test_test_or_example_reduces_score() -> None:
     assessment = result[0]
     assert assessment.risk_level == "quantum_vulnerable"
     assert assessment.risk_score == 60
+    assert assessment.finding_category == "low_confidence"
     assert "test_or_example_reduced_score" in assessment.risk_factors
 
 
@@ -133,4 +143,53 @@ def test_non_real_crypto_usage_is_unknown() -> None:
     assessment = result[0]
     assert assessment.risk_level == "unknown"
     assert assessment.risk_score == 0
+    assert assessment.finding_category == "low_confidence"
     assert "semantic_analysis_not_real_crypto_usage" in assessment.risk_factors
+
+
+def test_quantum_safe_algorithms_are_classified_for_frontend() -> None:
+    results = RiskAssessor().assess(
+        [
+            evidence(evidence_id="aes", algorithm="AES", usage_type="symmetric_encryption"),
+            evidence(evidence_id="sha", algorithm="SHA-2", usage_type="hashing"),
+            evidence(evidence_id="hmac", algorithm="HMAC", usage_type="mac"),
+        ],
+        [
+            analysis(evidence_id="aes", algorithm="AES", usage_type="symmetric_encryption"),
+            analysis(evidence_id="sha", algorithm="SHA-2", usage_type="hashing"),
+            analysis(evidence_id="hmac", algorithm="HMAC", usage_type="mac"),
+        ],
+    )
+
+    assert [result.risk_level for result in results] == [
+        "quantum_safe",
+        "quantum_safe",
+        "quantum_safe",
+    ]
+    assert all(result.finding_category == "quantum_safe" for result in results)
+    assert all(result.display_priority >= 80 for result in results)
+
+
+def test_import_keyword_and_comment_matches_are_low_confidence() -> None:
+    results = RiskAssessor().assess(
+        [
+            evidence(evidence_id="import", evidence_type="import", confidence="medium"),
+            evidence(
+                evidence_id="comment",
+                evidence_type="keyword",
+                source_kind="comment",
+                confidence="low",
+            ),
+        ],
+        [
+            analysis(evidence_id="import", confidence=0.65),
+            analysis(evidence_id="comment", confidence=0.35),
+        ],
+    )
+
+    assert results[0].finding_category == "low_confidence"
+    assert results[0].risk_score == 70
+    assert "import_only_reduced_score" in results[0].risk_factors
+    assert results[1].finding_category == "low_confidence"
+    assert results[1].risk_score == 0
+    assert "comment_or_string_reduced_score" in results[1].risk_factors
